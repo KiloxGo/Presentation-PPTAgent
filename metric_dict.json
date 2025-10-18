@@ -1,0 +1,18 @@
+{
+    "text": {
+        "criteria": "The title should be concise, precise, and accurately reflect the academic topic; main content must be clear, rigorous, and logically structured, using proper headings and well-distinguished levels. Avoid colloquialism, ensure high relevance to the academic subject, and support key points with evidence or clear referencing where necessary. Use consistent and readable font sizes, styles, and colors; text should include appropriate academic terminology and, if relevant, proper citations.",
+        "scale": 100
+    },
+    "image": {
+        "criteria": "Images and charts must be high quality (clear, no distortion, watermarks, or unnecessary borders), appropriately sized, and scientifically relevant to the topic. Images should enhance or explain the academic content (e.g., research data, diagrams, statistical figures). Each image or chart should have a concise title or caption and clearly indicate the data source if applicable. The layout must align with the page style and maintain an academic tone. No penalty for slides without images.",
+        "scale": 100
+    },
+    "layout": {
+        "criteria": "All elements (text, images, formulas, icons, tables) should be well-aligned, evenly spaced, and entirely within slide boundaries. The hierarchy of content must be clear, enabling easy comprehension of the academic argument or logic. Ensure proper use of white space to avoid overcrowding. The visual focus should highlight key points or findings, supporting natural reading flow. Follow academic or institutional template standards if available.",
+        "scale": 100
+    },
+    "color": {
+        "criteria": "Use high-contrast color specifically between text and background to ensure legibility. Avoid overly bright or saturated colors; color schemes should be professional and suitable for academic conferences. Charts and diagrams should use distinguishable colors for different data sets and be considerate of color accessibility. Highlight important information subtly without disrupting the academic style.",
+        "scale": 100
+    }
+}
