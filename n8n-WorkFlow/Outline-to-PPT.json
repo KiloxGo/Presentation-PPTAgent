@@ -1,0 +1,734 @@
+{
+  "name": "Outline-to-PPT",
+  "nodes": [
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "={{ $json.output }}",
+        "options": {
+          "systemMessage": "传入的是ppt的内容，请形成一个ppt（markdown形式），有图片的地方要根据文本信息写详细的英文prompt，一定把prompt传给tool，生图后将图片链接写在输出文件相应位置（在中括号前要加!），不用把给tool的prompt写在文件中，给我返回markdown文件，不要一开始的```markdown和结尾的```，最后这个文件要给到slidev，生成幻灯片"
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 2,
+      "position": [
+        880,
+        208
+      ],
+      "id": "db3b5ef7-2efd-4f72-b685-6e57eeba8c8a",
+      "name": "AI Agent"
+    },
+    {
+      "parameters": {
+        "fileSelector": "D:/Presentation-PPTAgent/metric_dict.json",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.readWriteFile",
+      "typeVersion": 1,
+      "position": [
+        464,
+        -176
+      ],
+      "id": "45bfcbb0-6644-4cdd-a2e3-67356b745dad",
+      "name": "Read/Write Files from Disk"
+    },
+    {
+      "parameters": {
+        "operation": "text",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.extractFromFile",
+      "typeVersion": 1,
+      "position": [
+        784,
+        -176
+      ],
+      "id": "d3c39f32-336f-4099-a008-faae7d580b93",
+      "name": "Extract from File",
+      "alwaysOutputData": false
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatDeepSeek",
+      "typeVersion": 1,
+      "position": [
+        880,
+        384
+      ],
+      "id": "426df221-06ea-417a-8326-41e711d60f4a",
+      "name": "DeepSeek Chat Model",
+      "credentials": {
+        "deepSeekApi": {
+          "id": "rTZfsAYOCwTcpnXx",
+          "name": "DeepSeek account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "write",
+        "fileName": "D:\\\\Presentation-PPTAgent\\slidev\\\\slides_1.json",
+        "dataPropertyName": "=data",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.readWriteFile",
+      "typeVersion": 1,
+      "position": [
+        3152,
+        352
+      ],
+      "id": "9570684c-b0aa-45bb-8cf8-8cd6eab48b7b",
+      "name": "Read/Write Files from Disk1"
+    },
+    {
+      "parameters": {
+        "operation": "toText",
+        "sourceProperty": "processedMarkdown",
+        "binaryPropertyName": "=data",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.convertToFile",
+      "typeVersion": 1.1,
+      "position": [
+        2864,
+        352
+      ],
+      "id": "20648b34-0a60-4395-8179-62e3081f7949",
+      "name": "Convert to File"
+    },
+    {
+      "parameters": {
+        "description": "call this tool to get a picture,you need to write prompt",
+        "jsCode": "// 获取输入数据（来自AI Agent的prompt）\nconst prompt = query;\n\n// 验证输入\nif (!prompt) {\n  throw new Error(\"缺少图片描述参数 'prompt'\");\n}\n\n// 默认参数配置\nconst width = 512;\nconst height = 512;\nconst model = \"flux\";\n\n// 构建 API URL - 强制 nologo=true\nlet url = `https://image.pollinations.ai/prompt/${encodeURIComponent(prompt)}?`;\nurl += `width=${width}&height=${height}&model=${model}&nologo=true`;\n\n// 添加随机种子确保结果多样性\nconst seed = Date.now() % 1000000;\nurl += `&seed=${seed}`;\n\n// 返回结果给AI Agent\nreturn url;"
+      },
+      "type": "@n8n/n8n-nodes-langchain.toolCode",
+      "typeVersion": 1.3,
+      "position": [
+        1072,
+        416
+      ],
+      "id": "71c58ab7-0e49-4e5e-93dc-ccc743ad206d",
+      "name": "Code Tool"
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "={{ $json.segment }}",
+        "options": {
+          "systemMessage": "=传入的内容是有关ppt每一页非常简略的大纲，请为每一个要点增添详细的内容，不要大纲式的，要有一段段文字，但要保证一页的总字数不超过150，不要在结尾用括号提示字数，请在需要添加图片的地方标明，每一页只需要一张图片,且图片要求用[]包裹起来，同时保证大纲的基本形式、流程不变，并遵守以下四个方面的要求：{{ $json.data }}"
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 2,
+      "position": [
+        1376,
+        -192
+      ],
+      "id": "345d5f2f-efdf-4d34-bc3e-9d12aa80808c",
+      "name": "AI Agent1"
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatDeepSeek",
+      "typeVersion": 1,
+      "position": [
+        1376,
+        32
+      ],
+      "id": "e0795041-f13b-4e1b-9dd8-92b7d9c22579",
+      "name": "DeepSeek Chat Model1",
+      "credentials": {
+        "deepSeekApi": {
+          "id": "rTZfsAYOCwTcpnXx",
+          "name": "DeepSeek account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// 获取输入数据\nconst inputString = $input.first().json.body.markdown;\n\n// 按 # 分割字符串\nconst parts = inputString.split(\"---\");\n\n// 创建新 items\nreturn parts.map(part => {\n  return {\n    json: {\n      segment: part.trim(),  // 移除首尾空格\n      length: part.length\n    },\n    // 可选：保留原始数据\n    pairedItem: $item.index\n  };\n});"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        800,
+        -448
+      ],
+      "id": "69a26e44-4e6b-446a-96af-b1a7383970f8",
+      "name": "Code"
+    },
+    {
+      "parameters": {
+        "fieldsToAggregate": {
+          "fieldToAggregate": [
+            {
+              "fieldToAggregate": "processedMarkdown"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.aggregate",
+      "typeVersion": 1,
+      "position": [
+        2368,
+        352
+      ],
+      "id": "ee82cd22-f6ed-4533-94cc-20316e720ddf",
+      "name": "Aggregate"
+    },
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "7523c1d8-144f-4a9a-966b-53913899af17",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        16,
+        -176
+      ],
+      "id": "f4f6ee9e-e49b-4690-8d0b-38178e2de9b9",
+      "name": "Webhook",
+      "webhookId": "7523c1d8-144f-4a9a-966b-53913899af17"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "aa18a037-5a85-401c-b49b-8384117fb566",
+              "name": "body.markdown",
+              "value": "={{ $json.body }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        432,
+        -448
+      ],
+      "id": "3d9096ae-099b-4068-9495-d232dff84660",
+      "name": "Edit Fields1"
+    },
+    {
+      "parameters": {
+        "mode": "combine",
+        "combineBy": "combineAll",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3.2,
+      "position": [
+        1104,
+        -192
+      ],
+      "id": "205a8972-0856-4166-a6b2-c197c1658227",
+      "name": "Merge"
+    },
+    {
+      "parameters": {
+        "fileSelector": "D:\\\\Presentation-PPTAgent\\\\slidev\\\\slides_1.md",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.readWriteFile",
+      "typeVersion": 1,
+      "position": [
+        816,
+        544
+      ],
+      "id": "05828394-bf9f-470f-829e-c721a85c77dc",
+      "name": "Read/Write Files from Disk2"
+    },
+    {
+      "parameters": {
+        "operation": "text",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.extractFromFile",
+      "typeVersion": 1,
+      "position": [
+        1008,
+        544
+      ],
+      "id": "804d2c9d-395f-47a7-82d9-b062ab2cf1ae",
+      "name": "Extract from File1"
+    },
+    {
+      "parameters": {
+        "mode": "combine",
+        "combineBy": "combineAll",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3.2,
+      "position": [
+        1456,
+        352
+      ],
+      "id": "fb7a71d8-0f14-4ba0-8a67-ddc56962a848",
+      "name": "Merge1"
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "={{ $json.output }}",
+        "options": {
+          "systemMessage": "=将我的prompt的一页ppt内容增加细节修饰即可，并仅给出正确的形式单页slidev内可预览的md格式输出，遇见 \\n 则请将 \\n 转换为 Markdown 格式的换行,不要其他多余介绍，同时保留原prompt里面的文字数据内容和图片，确保每页slide的开头都以---开头，请删除所有 markdown 和 标记，没有多余的解释，并请严格遵守以上要求，这个是我给你的slidev语法范本：{{ $json.data }},并且保证整个ppt的语言是同一种，保持整体的一贯性，并且保证每页ppt必须包含frontmatter这种信息，且内容严格在内容板块中，并且针对two-cols的layout时不生成::left::"
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 2.1,
+      "position": [
+        1712,
+        352
+      ],
+      "id": "d48dcde2-4da5-4820-ba59-03cfa2f3bddc",
+      "name": "AI Agent2"
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatDeepSeek",
+      "typeVersion": 1,
+      "position": [
+        1712,
+        528
+      ],
+      "id": "1d5b430d-8f40-4c08-94c0-dbe15d92b9be",
+      "name": "DeepSeek Chat Model2",
+      "credentials": {
+        "deepSeekApi": {
+          "id": "rTZfsAYOCwTcpnXx",
+          "name": "DeepSeek account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "0fd0372a-f786-45d3-a26d-25b3a4280a9f",
+              "name": "data",
+              "value": "={{ $json.data }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        1216,
+        544
+      ],
+      "id": "dc7a85fd-16e8-4874-aed9-f0da771cddfc",
+      "name": "Edit Fields3"
+    },
+    {
+      "parameters": {
+        "jsCode": "// 遍历所有输入的 Item（$input.all() 返回所有独立 Item）\nconst processedItems = $input.all().map((item, index) => {\n  // 获取当前 Item 中的 Markdown 文本（字段名为 output）\n  const rawMarkdown = item.json.output;\n  \n  // 将 \\n 转义符替换为真实换行符\n  const processedMarkdown = rawMarkdown.replace(/\\\\n/g, '\\n');\n  \n  // 返回处理后的 Item\n  return {\n    json: {\n      processedMarkdown,\n      itemIndex: index // 可选：标记当前 Item 的索引\n    }\n  };\n});\n\n// 返回所有处理后的 Item\nreturn processedItems;"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2128,
+        352
+      ],
+      "id": "70f7eb09-671a-49ae-81d8-c8412de00f1e",
+      "name": "Code1"
+    },
+    {
+      "parameters": {
+        "command": "cd /d D:/my-lobe-ui-project/slidev && python Markdown_delete.py"
+      },
+      "type": "n8n-nodes-base.executeCommand",
+      "typeVersion": 1,
+      "position": [
+        3472,
+        352
+      ],
+      "id": "66795ff8-d81a-41a2-81c9-e053bfaefa5b",
+      "name": "Execute Command"
+    }
+  ],
+  "pinData": {
+    "AI Agent1": [
+      {
+        "json": {
+          "output": "# 东方明珠，璀璨上海  \n## 一座融合历史与现代的魔幻之都  \n\n*文学化表达*：当黄浦江的晚风轻抚过百年外滩，陆家嘴的玻璃幕墙倒映着流动的星河，这座城市正以独特的韵律讲述着跨越三个世纪的故事。1843年开埠的汽笛声犹在耳畔，如今的外滩18号已蜕变为顶级艺术空间（上海市统计局，2023），而静安寺的飞檐与环球金融中心的棱角在云端对话。  \n\n**Modern Economy Highlight**：Shanghai's GDP reached 4.72 trillion yuan in 2023 (People's Bank of China Q3 Report), with Yangshan Port handling 47.3 million TEUs, retaining its position as the world's busiest container port for 12 consecutive years. The Lingang Special Area of FTZ has attracted over 500 high-tech enterprises since 2019.  \n\n（插入图片：外滩1920s黑白照片与2020s夜景的对比拼图，右侧标注\"Digital Restoration by SHANGHAI ARCHIVES\"）  \n\n*Color Scheme*：  \n- 标题渐变：从釉里红(#C91F37)过渡到金融银(#C0C0C0)  \n- 背景：4K分辨率外滩全景，浦江两岸灯光呈现动态流光效果（持续时间2.8秒）  \n\n*Layout Note*：  \n- 左侧1/3区域叠加泛黄老地图纹理，标注1845年英租界范围  \n- 右侧悬浮框显示2023年关键经济指标（透明度40%，字体Arial 10.5pt）"
+        }
+      },
+      {
+        "json": {
+          "output": "**魔都上海：经济心脏的世纪脉动**  \n\n*文学化表达* 黄浦江如鎏金绸缎，将浦西的百年风云与浦东的摩登天际温柔分割，这座城市的每一次心跳都带动着长江经济带的血液奔涌。1843年开埠以来，上海从渔村蜕变为远东第一商埠，外滩的万国建筑群至今仍在诉说当年的金融传奇。（历史照片：1920年外滩码头 vs 2023年陆家嘴航拍，4K对比）  \n\n作为中国（上海）自由贸易试验区的核心载体，2023年全市GDP达4.72万亿元（来源：上海市统计局），洋山深水港集装箱吞吐量连续13年全球第一。*The Bund's colonnades whisper tales of compradors, while Lujiazui's skyscrapers broadcast real-time stock indexes in trillion-dollar light shows.*  \n\n**关键数据悬浮框**  \n▸ 面积：6,341 km²  \n▸ 常住人口：2,489万  \n▸ 第三产业占比：73%  \n▸ 金融业增加值：8,621亿元  \n\n（配图：动态数据可视化-2000-2023年GDP增长螺旋图，采用上海地铁10号线紫色系）"
+        }
+      },
+      {
+        "json": {
+          "output": "# 黄浦江畔的百年觉醒  \n\n*文学化表达*  \n当1843年的开埠条约如晨钟敲响，沉睡的渔村在汽笛声中睁开惺忪睡眼。苏州河与黄浦江交汇处，英国领事馆的红砖墙（现存外滩源33号）成为这座城市近代化的第一个胎记。  \n\nBy 1930s, the Bund's neoclassical buildings stood like a pearl necklace along the Huangpu River. The Shikumen alleyways witnessed both the glamour of cheongsam-clad socialites and the birth of the Communist Party in 1921 (Site: 76 Xingye Road).  \n\n1990年浦东开发开放如同巨人舒展筋骨，陆家嘴从农田蜕变为\"中国改革开放的象征\"（邓小平语）。2023年浦东GDP达1.6万亿元（来源：上海市统计局），占全市经济总量的35%。  \n\n[插入对比图：1920年外滩码头劳工群像 vs 2023年陆家嘴空中走廊，需标注\"历史照片经AI修复\"]  \n\n*右侧悬浮信息框*  \n▸ 2023上海港集装箱吞吐量  \n突破4900万TEU  \n（来源：上海国际港务集团年报）"
+        }
+      },
+      {
+        "json": {
+          "output": "**魔都地标：凝固的时空诗篇**  \n\n东方明珠广播电视塔犹如城市皇冠上璀璨的明珠，其11个大小不一的球体串联起现代科技与浪漫想象（*文学化表达*）。作为1994年建成的亚洲第一高塔，它见证了浦东开发的壮阔历程，如今与632米高的上海中心大厦构成\"双塔奇观\"。后者如银色巨龙冲破云层，128层楼体采用螺旋式减震设计，创下\"世界最高绿色建筑\"纪录（来源：CTBUH 2023年报）。  \n\n外滩万国建筑博览群是凝固的欧洲交响乐，52幢历史建筑囊括哥特式、巴洛克式等风格，1843年开埠后曾是远东金融中心。隔江相望的陆家嘴摩天楼群则奏响现代乐章，两者通过黄浦江轮渡形成\"百年金融对话\"。  \n\n*豫园*这座明代江南园林宛如闹市静卧的美人，湖心亭飞檐与九曲桥构成\"移步换景\"的古典美学，其元宵灯会已列入国家级非遗。新天地石库门街区则用青砖红窗演绎中西合璧，成为海派文化活态博物馆。  \n\n（图片：外滩与陆家嘴天际线对比图，左侧1920年黑白照片与右侧2023年航拍4K合成）"
+        }
+      },
+      {
+        "json": {
+          "output": "**魔都上海：石库门里的时光交响曲**  \n\n*文学化表达*：当晨曦掠过山花墙头的巴洛克涡卷，石库门弄堂便苏醒在青砖与马头墙的斑驳光影里。这些诞生于19世纪中后期的建筑瑰宝，将江南民居的\"三进两厢\"格局与西方联排住宅巧妙融合，门楣上的西式雕花与中式匾额相映成趣（标注：黄浦区文物保护中心，2022）。  \n\n**新天地**的改造堪称城市更新的典范，2001年由美国SOM事务所操刀设计，完整保留了23栋石库门建筑的外立面，内部则注入全球顶级奢侈品牌与米其林餐厅。2023年数据显示，其日均客流量达5.8万人次（来源：上海商务委年报）。  \n\n**田子坊**则演绎着更鲜活的市井诗篇，艺术家陈逸飞工作室旧址所在的泰康路210弄，如今500余家创意店铺与居民晾晒的衣物共享同一片天空。*文学化表达*：咖啡香混着油墩子香气，法国画廊的落地窗映出阿婆生煤炉的蓝烟——这是海派文化最生动的蒙太奇。  \n\n（插入图片：新天地石库门建筑群夜景，需包含传统砖雕与现代霓虹的对比构图）  \n\n**Shanghai Culture: Stone-Gate Dialogues**  \nThe Shikumen (Stone-Gate) houses, emerging in 1860s, feature Western-style arched gateways with Chinese courtyard layouts. Xintiandi's renovation preserved 92% original facades while creating a $1.2B commercial hub (Source: Jones Lang LaSalle 2023). Tianzifang's labyrinthine alleys host over 200 artists' studios alongside wet markets, embodying the city's cultural hybridity."
+        }
+      },
+      {
+        "json": {
+          "output": "**Shanghai Gastronomy: A Symphony of Flavors**  \n\n*文学化表达*  \nThe siren song of xiaolongbao echoes through misty alleyways, where translucent skins shimmer like silk lanterns, cradling molten broth that erupts in a golden geyser at first bite. (Source: Shanghai Municipal Bureau of Culture and Tourism 2023)  \n\n**Culinary Icons**  \n- **Xiaolongbao**: 18 precise folds encapsulate 5g of pork and 8ml broth (perfected at Nanxiang Steamed Bun Restaurant since 1900). *Pro tip: Poke, sip, savor*  \n- **Shengjianbao**: Cast-iron pans transform dough into caramelized armor, achieving 0.3mm crispness (measured by Shanghai Food Research Institute). The 2023 record: 2.8 million consumed daily.  \n- **Benbang Cuisine** marries soy-sauce braising (红烧) and sugar-glazing (糖醋), with signature \"Red-Braised Pork\" requiring 3-hour simmering in aged Shaoxing wine.  \n\n*(Image: Steam rising from bamboo baskets at Yuyuan Bazaar, capturing xiaolongbao's 32-layer dough technique)*  \n\n**Global Fusion**  \nThe Bund's Michelin-starred venues (like Ultraviolet) reinterpret these classics with liquid nitrogen (-196°C) and edible gold leaf, while *local wisdom persists*: the best crab roe dumplings still emerge from 4am kitchen shifts at Jia Jia Tang Bao.  \n\n*\"A city that eats its crusts first\"* – Food critic Anthony Bourdain's 2016 Shanghai epiphany."
+        }
+      },
+      {
+        "json": {
+          "output": "**魔都未来：卓越全球城市的星辰征途**  \n\n*文学化表达* Shanghai stands at the dawn of a new era, where Huangpu River's waves whisper tales of ambition. The city's blueprint as a \"global excellence hub\" unfolds through bold initiatives: the Lingang Special Area of Shanghai Free Trade Zone (source: Shanghai Municipal Govt 2023) pioneers cross-border data flows, while Zhangjiang Science City accelerates quantum computing breakthroughs. By 2035, the city aims to achieve 6% annual GDP growth in tech sectors (PwC China Report).  \n\n浦东陆家嘴天际线AI概念图（标注：设计构想）  \n\n*双语呼告* 上海，永远给世界惊喜！/ Shanghai, forever surprising the world! The symphony of heritage and innovation plays on – from restored Shikumen smart homes to AI-powered \"City Brain\" governance. Here, every sunrise writes a new legend."
+        }
+      }
+    ],
+    "AI Agent": [
+      {
+        "json": {
+          "output": "# 东方明珠，璀璨上海  \n## 一座融合历史与现代的魔幻之都  \n\n当黄浦江的晚风轻抚过百年外滩，陆家嘴的玻璃幕墙倒映着流动的星河，这座城市正以独特的韵律讲述着跨越三个世纪的故事。1843年开埠的汽笛声犹在耳畔，如今的外滩18号已蜕变为顶级艺术空间（上海市统计局，2023），而静安寺的飞檐与环球金融中心的棱角在云端对话。  \n\n![Shanghai Bund Transformation](https://image.pollinations.ai/prompt/A%20stunning%20split-screen%20comparison%20image%20showing%20Shanghai's%20Bund%20area%20transformation%20from%20the%201920s%20to%202020s.%20Left%20side%3A%20black%20and%20white%20historical%20photo%20of%20the%20Bund%20in%201920s%20with%20old%20European-style%20buildings%2C%20vintage%20cars%2C%20and%20people%20in%20period%20clothing.%20Right%20side%3A%20modern%20night%20view%20of%20the%20same%20Bund%20area%20in%202020s%20with%20illuminated%20skyscrapers%20of%20Lujiazui%20financial%20district%20across%20the%20Huangpu%20River%2C%20LED%20lights%20creating%20flowing%20patterns%2C%20and%20contemporary%20cityscape.%20The%20image%20should%20show%20dramatic%20contrast%20between%20past%20and%20present%2C%20with%20a%20watermark%20%22Digital%20Restoration%20by%20SHANGHAI%20ARCHIVES%22%20on%20the%20bottom%20right%20corner.?width=512&height=512&model=flux&nologo=true&seed=143952)  \n\n**Modern Economy Highlight**：Shanghai's GDP reached 4.72 trillion yuan in 2023 (People's Bank of China Q3 Report), with Yangshan Port handling 47.3 million TEUs, retaining its position as the world's busiest container port for 12 consecutive years. The Lingang Special Area of FTZ has attracted over 500 high-tech enterprises since 2019.  \n\n### 设计元素  \n- **标题渐变**：从釉里红(#C91F37)过渡到金融银(#C0C0C0)  \n- **背景**：4K分辨率外滩全景，浦江两岸灯光呈现动态流光效果（持续时间2.8秒）  \n- **布局**：  \n  - 左侧1/3区域叠加泛黄老地图纹理，标注1845年英租界范围  \n  - 右侧悬浮框显示2023年关键经济指标（透明度40%，字体Arial 10.5pt）  "
+        }
+      },
+      {
+        "json": {
+          "output": "# 魔都上海：经济心脏的世纪脉动\n\n---\n\n## 黄浦江的鎏金绸缎\n\n- 黄浦江如鎏金绸缎，将浦西的百年风云与浦东的摩登天际温柔分割。\n- 1843年开埠以来，上海从渔村蜕变为远东第一商埠。\n- 外滩的万国建筑群诉说当年的金融传奇。\n\n![1920年外滩码头 vs 2023年陆家嘴航拍](https://image.pollinations.ai/prompt/A%20high-resolution%204K%20split-image%20comparison%20showing%20the%201920s%20Bund%20waterfront%20with%20historical%20ships%20and%20buildings%20on%20the%20left%2C%20and%20the%20modern%20Lujiazui%20skyline%20with%20skyscrapers%20and%20neon%20lights%20on%20the%20right%2C%20separated%20by%20the%20Huangpu%20River.?width=512&height=512&model=flux&nologo=true&seed=200983)\n\n---\n\n## 经济巨擎：上海自由贸易试验区\n\n- 2023年全市GDP达4.72万亿元（来源：上海市统计局）。\n- 洋山深水港集装箱吞吐量连续13年全球第一。\n- *The Bund's colonnades whisper tales of compradors, while Lujiazui's skyscrapers broadcast real-time stock indexes in trillion-dollar light shows.*\n\n![上海金融区夜景](https://image.pollinations.ai/prompt/A%20nighttime%20aerial%20view%20of%20Shanghai's%20financial%20district%2C%20with%20skyscrapers%20illuminated%20by%20vibrant%20lights%2C%20symbolizing%20the%20city's%20economic%20vitality.?width=512&height=512&model=flux&nologo=true&seed=201005)\n\n---\n\n## 关键数据\n\n- **面积**：6,341 km²  \n- **常住人口**：2,489万  \n- **第三产业占比**：73%  \n- **金融业增加值**：8,621亿元  \n\n![2000-2023年GDP增长螺旋图](https://image.pollinations.ai/prompt/A%20dynamic%20spiral%20chart%20in%20purple%20tones%20(inspired%20by%20Shanghai%20Metro%20Line%2010)%20showing%20Shanghai's%20GDP%20growth%20from%202000%20to%202023%2C%20with%20data%20points%20rising%20in%20a%20helical%20pattern.?width=512&height=512&model=flux&nologo=true&seed=200994)\n\n---\n\n## 浦西与浦东的对话\n\n- 外滩的历史建筑与陆家嘴的现代天际线隔江相望。\n- 黄浦江见证了上海的过去与未来。\n\n![外滩与陆家嘴全景](https://image.pollinations.ai/prompt/A%20panoramic%20view%20of%20the%20Bund's%20historical%20architecture%20on%20one%20side%20and%20Lujiazui's%20futuristic%20skyline%20on%20the%20other%2C%20with%20the%20Huangpu%20River%20flowing%20between%20them.?width=512&height=512&model=flux&nologo=true&seed=201016)"
+        }
+      },
+      {
+        "json": {
+          "output": "# 黄浦江畔的百年觉醒  \n\n---\n\n## 1843年：开埠与觉醒  \n当1843年的开埠条约如晨钟敲响，沉睡的渔村在汽笛声中睁开惺忪睡眼。苏州河与黄浦江交汇处，英国领事馆的红砖墙（现存外滩源33号）成为这座城市近代化的第一个胎记。  \n\n![1843年英国领事馆](https://image.pollinations.ai/prompt/Historical%20image%20of%20the%20British%20Consulate%20in%201843%2C%20red%20brick%20building%20by%20the%20Suzhou%20Creek%20and%20Huangpu%20River%2C%20early%20morning%20light%2C%20vintage%20style?width=512&height=512&model=flux&nologo=true&seed=263003)  \n\n---\n\n## 1930年代：外滩的黄金时代  \nBy 1930s, the Bund's neoclassical buildings stood like a pearl necklace along the Huangpu River. The Shikumen alleyways witnessed both the glamour of cheongsam-clad socialites and the birth of the Communist Party in 1921 (Site: 76 Xingye Road).  \n\n![1930年代外滩](https://image.pollinations.ai/prompt/Neoclassical%20buildings%20of%20the%20Bund%20in%20the%201930s%2C%20pearl-like%20structures%20along%20the%20Huangpu%20River%2C%20vintage%20atmosphere?width=512&height=512&model=flux&nologo=true&seed=263006)  \n\n---\n\n## 1990年：浦东的崛起  \n1990年浦东开发开放如同巨人舒展筋骨，陆家嘴从农田蜕变为\"中国改革开放的象征\"（邓小平语）。2023年浦东GDP达1.6万亿元（来源：上海市统计局），占全市经济总量的35%。  \n\n![2023年浦东天际线](https://image.pollinations.ai/prompt/Pudong%20skyline%20in%202023%2C%20modern%20skyscrapers%20in%20Lujiazui%2C%20sunrise%20over%20the%20Huangpu%20River?width=512&height=512&model=flux&nologo=true&seed=263010)  \n\n---\n\n## 历史与未来的对比  \n![1920年外滩码头劳工群像 vs 2023年陆家嘴空中走廊](https://image.pollinations.ai/prompt/Side-by-side%20comparison%3A%20left%20-%201920s%20Bund%20dock%20laborers%20in%20sepia%20tone%2C%20right%20-%202023%20Lujiazui%20skywalk%20in%20vibrant%20colors%2C%20labeled%20%22Historical%20photo%20AI%20restored%22?width=512&height=512&model=flux&nologo=true&seed=263013)  \n\n---\n\n## 2023年上海港的成就  \n▸ 2023上海港集装箱吞吐量  \n突破4900万TEU  \n（来源：上海国际港务集团年报）  \n\n![上海港吞吐量数据](https://image.pollinations.ai/prompt/Infographic%20of%20Shanghai%20Port's%202023%20container%20throughput%2C%2049%20million%20TEU%2C%20modern%20data%20visualization?width=512&height=512&model=flux&nologo=true&seed=263021)  "
+        }
+      },
+      {
+        "json": {
+          "output": "# 魔都地标：凝固的时空诗篇\n\n---\n\n## 东方明珠广播电视塔\n- 犹如城市皇冠上璀璨的明珠\n- 11个大小不一的球体串联现代科技与浪漫想象\n- 1994年建成，亚洲第一高塔\n- 见证浦东开发的壮阔历程\n- 与632米高的上海中心大厦构成\"双塔奇观\"\n\n---\n\n## 上海中心大厦\n- 如银色巨龙冲破云层\n- 128层楼体采用螺旋式减震设计\n- 创下\"世界最高绿色建筑\"纪录（CTBUH 2023年报）\n\n---\n\n## 外滩万国建筑博览群\n- 凝固的欧洲交响乐\n- 52幢历史建筑囊括哥特式、巴洛克式等风格\n- 1843年开埠后曾是远东金融中心\n\n---\n\n## 陆家嘴摩天楼群\n- 现代乐章的代表\n- 与外滩形成\"百年金融对话\"\n- 通过黄浦江轮渡连接历史与现代\n\n---\n\n## 外滩与陆家嘴天际线对比\n![对比图](https://image.pollinations.ai/prompt/A%20composite%20image%20showing%20the%20contrast%20between%20the%20Bund%20and%20Lujiazui%20skyline.%20On%20the%20left%2C%20a%20black%20and%20white%20photograph%20from%201920%20depicting%20the%20historic%20Bund%20with%20European-style%20buildings.%20On%20the%20right%2C%20a%204K%20aerial%20photo%20from%202023%20showcasing%20the%20modern%20Lujiazui%20skyline%20with%20towering%20skyscrapers%20like%20the%20Shanghai%20Tower%20and%20Oriental%20Pearl%20Tower.%20The%20image%20should%20highlight%20the%20dramatic%20transformation%20over%20a%20century.?width=512&height=512&model=flux&nologo=true&seed=304067)\n\n---\n\n## 豫园\n- 明代江南园林\n- 宛如闹市静卧的美人\n- 湖心亭飞檐与九曲桥构成\"移步换景\"的古典美学\n- 元宵灯会列入国家级非遗\n\n---\n\n## 新天地石库门街区\n- 青砖红窗演绎中西合璧\n- 海派文化活态博物馆"
+        }
+      },
+      {
+        "json": {
+          "output": "# 魔都上海：石库门里的时光交响曲\n\n---\n\n## 石库门的建筑瑰宝\n\n当晨曦掠过山花墙头的巴洛克涡卷，石库门弄堂便苏醒在青砖与马头墙的斑驳光影里。这些诞生于19世纪中后期的建筑瑰宝，将江南民居的\"三进两厢\"格局与西方联排住宅巧妙融合，门楣上的西式雕花与中式匾额相映成趣。\n\n（标注：黄浦区文物保护中心，2022）\n\n---\n\n## 新天地：城市更新的典范\n\n2001年由美国SOM事务所操刀设计，完整保留了23栋石库门建筑的外立面，内部则注入全球顶级奢侈品牌与米其林餐厅。\n\n2023年数据显示，其日均客流量达5.8万人次。\n\n（来源：上海商务委年报）\n\n![新天地石库门建筑群夜景](https://image.pollinations.ai/prompt/A%20nighttime%20scene%20of%20Xintiandi's%20Shikumen%20architecture%2C%20showcasing%20the%20contrast%20between%20traditional%20brick%20carvings%20and%20modern%20neon%20lights.%20The%20image%20should%20highlight%20the%20fusion%20of%20historical%20and%20contemporary%20elements%2C%20with%20warm%20lighting%20illuminating%20the%20stone%20gateways%20and%20vibrant%20neon%20signs%20reflecting%20on%20the%20cobblestone%20streets.?width=512&height=512&model=flux&nologo=true&seed=334536)\n\n---\n\n## 田子坊：市井诗篇\n\n艺术家陈逸飞工作室旧址所在的泰康路210弄，如今500余家创意店铺与居民晾晒的衣物共享同一片天空。\n\n*文学化表达*：咖啡香混着油墩子香气，法国画廊的落地窗映出阿婆生煤炉的蓝烟——这是海派文化最生动的蒙太奇。\n\n---\n\n## Shanghai Culture: Stone-Gate Dialogues\n\nThe Shikumen (Stone-Gate) houses, emerging in 1860s, feature Western-style arched gateways with Chinese courtyard layouts.\n\n- **Xintiandi's renovation**: Preserved 92% original facades while creating a $1.2B commercial hub (Source: Jones Lang LaSalle 2023).\n- **Tianzifang's alleys**: Host over 200 artists' studios alongside wet markets, embodying the city's cultural hybridity.\n\n---"
+        }
+      },
+      {
+        "json": {
+          "output": "# Shanghai Gastronomy: A Symphony of Flavors  \n\n---\n\n### The Siren Song of Xiaolongbao  \n*文学化表达*  \nThe siren song of xiaolongbao echoes through misty alleyways, where translucent skins shimmer like silk lanterns, cradling molten broth that erupts in a golden geyser at first bite.  \n*(Source: Shanghai Municipal Bureau of Culture and Tourism 2023)*  \n\n![Xiaolongbao with steam rising from bamboo baskets](https://image.pollinations.ai/prompt/Xiaolongbao%20with%20steam%20rising%20from%20bamboo%20baskets%2C%20showcasing%20the%2032-layer%20dough%20technique?width=512&height=512&model=flux&nologo=true&seed=377567)  \n\n---\n\n### Culinary Icons  \n\n#### **Xiaolongbao**  \n- **18 precise folds** encapsulate 5g of pork and 8ml broth (perfected at Nanxiang Steamed Bun Restaurant since 1900).  \n- *Pro tip: Poke, sip, savor*  \n\n#### **Shengjianbao**  \n- Cast-iron pans transform dough into caramelized armor, achieving **0.3mm crispness** (measured by Shanghai Food Research Institute).  \n- The 2023 record: **2.8 million consumed daily**.  \n\n#### **Benbang Cuisine**  \n- Marries soy-sauce braising (红烧) and sugar-glazing (糖醋).  \n- Signature \"Red-Braised Pork\" requires **3-hour simmering** in aged Shaoxing wine.  \n\n![A bustling Shanghai food market](https://image.pollinations.ai/prompt/A%20bustling%20Shanghai%20food%20market%20with%20steam%20rising%20from%20bamboo%20baskets%20and%20chefs%20preparing%20dumplings?width=512&height=512&model=flux&nologo=true&seed=377577)  \n\n---\n\n### Global Fusion  \n- The Bund's Michelin-starred venues (like Ultraviolet) reinterpret classics with **liquid nitrogen (-196°C)** and **edible gold leaf**.  \n- *Local wisdom persists*: the best crab roe dumplings emerge from **4am kitchen shifts** at Jia Jia Tang Bao.  \n\n> *\"A city that eats its crusts first\"*  \n> – Food critic Anthony Bourdain's 2016 Shanghai epiphany.  "
+        }
+      },
+      {
+        "json": {
+          "output": "以下是根据您的内容生成的Markdown格式的PPT文件：\n\n---\n\n# 魔都未来：卓越全球城市的星辰征途\n\n---\n\n## Shanghai: A New Era of Ambition\n\n- **文学化表达**  \n  Shanghai stands at the dawn of a new era, where Huangpu River's waves whisper tales of ambition.  \n  The city's blueprint as a \"global excellence hub\" unfolds through bold initiatives.\n\n- **Key Initiatives**  \n  - Lingang Special Area: Pioneering cross-border data flows (Shanghai Municipal Govt 2023).  \n  - Zhangjiang Science City: Accelerating quantum computing breakthroughs.  \n  - By 2035: 6% annual GDP growth in tech sectors (PwC China Report).\n\n---\n\n## 浦东陆家嘴天际线AI概念图\n\n![Futuristic Lujiazui Skyline](https://image.pollinations.ai/prompt/AI-generated%20futuristic%20skyline%20of%20Lujiazui%2C%20Pudong%2C%20Shanghai%2C%20showcasing%20cutting-edge%20architecture%20and%20smart%20city%20technologies%2C%20with%20a%20futuristic%20glow%20and%20advanced%20infrastructure?width=512&height=512&model=flux&nologo=true&seed=418715)\n\n*(设计构想: AI-generated futuristic skyline of Lujiazui, Pudong, Shanghai)*\n\n---\n\n## 上海，永远给世界惊喜！  \n### Shanghai, Forever Surprising the World!\n\n- **Heritage Meets Innovation**  \n  - Restored Shikumen smart homes.  \n  - AI-powered \"City Brain\" governance.  \n\n- **A City of Legends**  \n  Every sunrise writes a new legend.\n\n--- \n\n请将此Markdown文件用于Slidev生成幻灯片。"
+        }
+      }
+    ],
+    "AI Agent2": [
+      {
+        "json": {
+          "output": "---\ncss: custom.css\ntheme: seriph\nbackground: https://cover.sli.dev\ntitle: 东方明珠，璀璨上海\ninfo: |\n  ## 一座融合历史与现代的魔幻之都\n  Presentation slides for Shanghai urban development.\ntransition: slide-up\nclass: text-left\n---\n\n# 东方明珠，璀璨上海  \n## 一座融合历史与现代的魔幻之都  \n\n当黄浦江的晚风轻抚过百年外滩，陆家嘴的玻璃幕墙倒映着流动的星河，这座城市正以独特的韵律讲述着跨越三个世纪的故事。1843年开埠的汽笛声犹在耳畔，如今的外滩18号已蜕变为顶级艺术空间（上海市统计局，2023），而静安寺的飞檐与环球金融中心的棱角在云端对话。  \n\n![Shanghai Bund Transformation](https://image.pollinations.ai/prompt/A%20stunning%20split-screen%20comparison%20image%20showing%20Shanghai's%20Bund%20area%20transformation%20from%20the%201920s%20to%202020s.%20Left%20side%3A%20black%20and%20white%20historical%20photo%20of%20the%20Bund%20in%201920s%20with%20old%20European-style%20buildings%2C%20vintage%20cars%2C%20and%20people%20in%20period%20clothing.%20Right%20side%3A%20modern%20night%20view%20of%20the%20same%20Bund%20area%20in%202020s%20with%20illuminated%20skyscrapers%20of%20Lujiazui%20financial%20district%20across%20the%20Huangpu%20River%2C%20LED%20lights%20creating%20flowing%20patterns%2C%20and%20contemporary%20cityscape.%20The%20image%20should%20show%20dramatic%20contrast%20between%20past%20and%20present%2C%20with%20a%20watermark%20%22Digital%20Restoration%20by%20SHANGHAI%20ARCHIVES%22%20on%20the%20bottom%20right%20corner.?width=512&height=512&model=flux&nologo=true&seed=143952)\n\n**Modern Economy Highlight**：Shanghai's GDP reached 4.72 trillion yuan in 2023 (People's Bank of China Q3 Report), with Yangshan Port handling 47.3 million TEUs, retaining its position as the world's busiest container port for 12 consecutive years. The Lingang Special Area of FTZ has attracted over 500 high-tech enterprises since 2019.  \n\n### 设计元素  \n- **标题渐变**：从釉里红(#C91F37)过渡到金融银(#C0C0C0)  \n- **背景**：4K分辨率外滩全景，浦江两岸灯光呈现动态流光效果（持续时间2.8秒）  \n- **布局**：  \n  - 左侧1/3区域叠加泛黄老地图纹理，标注1845年英租界范围  \n  - 右侧悬浮框显示2023年关键经济指标（透明度40%，字体Arial 10.5pt）  \n\n<style>\nh1 {\n  background-color: #C91F37;\n  background-image: linear-gradient(45deg, #C91F37 10%, #C0C0C0 90%);\n  background-size: 100%;\n  -webkit-background-clip: text;\n  -moz-background-clip: text;\n  -webkit-text-fill-color: transparent;\n  -moz-text-fill-color: transparent;\n}\n</style>"
+        }
+      },
+      {
+        "json": {
+          "output": "---\ntransition: slide-up\nlevel: 2\n---\n\n# 魔都上海：经济心脏的世纪脉动\n\n中国改革开放的璀璨明珠，全球金融中心的东方坐标\n\n<style>\nh1 {\n  background-color: #2B90B6;\n  background-image: linear-gradient(45deg, #4EC5D4 10%, #146b8c 20%);\n  background-size: 100%;\n  -webkit-background-clip: text;\n  -moz-background-clip: text;\n  -webkit-text-fill-color: transparent; \n  -moz-text-fill-color: transparent;\n}\n</style>\n\n---\nlayout: image-right\nimage: https://image.pollinations.ai/prompt/A%20high-resolution%204K%20split-image%20comparison%20showing%20the%201920s%20Bund%20waterfront%20with%20historical%20ships%20and%20buildings%20on%20the%20left%2C%20and%20the%20modern%20Lujiazui%20skyline%20with%20skyscrapers%20and%20neon%20lights%20on%20the%20right%2C%20separated%20by%20the%20Huangpu%20River.?width=512&height=512&model=flux&nologo=true&seed=200983\n---\n\n## 黄浦江的鎏金绸缎\n\n- 黄浦江如鎏金绸缎，将浦西的百年风云与浦东的摩登天际温柔分割\n- 1843年开埠以来，上海从渔村蜕变为远东第一商埠\n- 外滩的万国建筑群诉说当年的金融传奇\n- 陆家嘴三件套（上海中心、环球金融中心、金茂大厦）勾勒新时代天际线\n\n<br>\n\n> \"上海是中国通向世界的门户，也是世界了解中国的窗口\"  \n> —— 邓小平\n\n---\ntransition: fade-out\nclass: px-10\n---\n\n## 经济巨擎：上海自由贸易试验区\n\n<div grid=\"~ cols-2 gap-4\">\n<div>\n\n- 2023年全市GDP达4.72万亿元（占全国3.8%）\n- 洋山深水港集装箱吞吐量连续13年全球第一\n- 金融市场年交易额突破2000万亿元\n- 跨国公司地区总部累计达902家\n\n</div>\n<div>\n\n![上海金融区夜景](https://image.pollinations.ai/prompt/A%20nighttime%20aerial%20view%20of%20Shanghai's%20financial%20district%2C%20with%20skyscrapers%20illuminated%20by%20vibrant%20lights%2C%20symbolizing%20the%20city's%20economic%20vitality.?width=512&height=512&model=flux&nologo=true&seed=201005)\n\n</div>\n</div>\n\n---\nlayout: two-cols\nclass: gap-8\n---\n\n# 关键数据指标\n\n::left::\n\n- **面积**：6,341 km²（相当于新加坡9倍）\n- **常住人口**：2,489万（城镇化率89.3%）\n- **人均GDP**：18.04万元（约2.7万美元）\n- **第三产业占比**：73%（金融/科技/服务业主导）\n- **金融业增加值**：8,621亿元（占GDP18.3%）\n\n::right::\n\n![GDP增长螺旋图](https://image.pollinations.ai/prompt/A%20dynamic%20spiral%20chart%20in%20purple%20tones%20(inspired%20by%20Shanghai%20Metro%20Line%2010)%20showing%20Shanghai's%20GDP%20growth%20from%202000%20to%202023%2C%20with%20data%20points%20rising%20in%20a%20helical%20pattern.?width=512&height=512&model=flux&nologo=true&seed=200994)\n\n---\ntransition: slide-left\nlayout: center\n---\n\n## 浦西与浦东的世纪对话\n\n<div class=\"relative w-full h-64\">\n  <img class=\"absolute inset-0\" src=\"https://image.pollinations.ai/prompt/A%20panoramic%20view%20of%20the%20Bund's%20historical%20architecture%20on%20one%20side%20and%20Lujiazui's%20futuristic%20skyline%20on%20the%20other%2C%20with%20the%20Huangpu%20River%20flowing%20between%20them.?width=512&height=512&model=flux&nologo=true&seed=201016\" alt=\"浦江两岸\">\n</div>\n\n- 外滩23号（原英国领事馆） ↔ 上海中心大厦（632米）\n- 和平饭店爵士酒吧 ↔ 朵云书院云端阅读\n- 十六铺码头 ↔ 滨江步道智能跑道\n- 石库门里弄 ↔ 智慧社区人脸识别\n\n---\nclass: text-center\n---\n\n# 未来展望：全球卓越城市\n\n- 2025年基本建成国际经济、金融、贸易、航运中心\n- 2035年全面建成卓越的全球城市\n- 2050年成为具有世界影响力的社会主义现代化国际大都市\n\n<div class=\"mt-8 grid grid-cols-3 gap-4\">\n  <div v-click>\n    <carbon:idea class=\"text-4xl mx-auto\"/>\n    <div>科技创新策源地</div>\n  </div>\n  <div v-click>\n    <carbon:finance class=\"text-4xl mx-auto\"/>\n    <div>全球资源配置枢纽</div>\n  </div>\n  <div v-click>\n    <carbon:network-4 class=\"text-4xl mx-auto\"/>\n    <div>数字城市标杆</div>\n  </div>\n</div>"
+        }
+      },
+      {
+        "json": {
+          "output": "---\ntheme: seriph\nbackground: https://source.unsplash.com/random/1920x1080?history\nclass: text-center\ntransition: slide-up\n---\n\n# 黄浦江畔的百年觉醒\n\n从渔村到国际大都会的蜕变之路\n\n<div class=\"abs-br m-6 text-xl\">\n  <carbon:time />\n</div>\n\n---\ntransition: fade-out\nlayout: image-right\nimage: https://image.pollinations.ai/prompt/Historical%20image%20of%20the%20British%20Consulate%20in%201843%2C%20red%20brick%20building%20by%20the%20Suzhou%20Creek%20and%20Huangpu%20River%2C%20early%20morning%20light%2C%20vintage%20style?width=800&height=600&model=flux\n---\n\n## 1843年：开埠与觉醒\n\n当1843年的开埠条约如晨钟敲响，沉睡的渔村在汽笛声中睁开惺忪睡眼。  \n苏州河与黄浦江交汇处，英国领事馆的红砖墙（现存外滩源33号）成为这座城市近代化的第一个胎记。\n\n<v-click>\n\n**历史坐标**：  \n▸ 上海道台宫慕久与英国领事巴富尔签订《上海土地章程》  \n▸ 划定英租界范围约830亩\n\n</v-click>\n\n<style>\n  h2 {\n    color: #2B90B6;\n    margin-bottom: 1rem;\n  }\n</style>\n\n---\ntransition: slide-left\nlayout: image-left\nimage: https://image.pollinations.ai/prompt/Neoclassical%20buildings%20of%20the%20Bund%20in%20the%201930s%2C%20pearl-like%20structures%20along%20the%20Huangpu%20River%2C%20vintage%20atmosphere?width=800&height=600&model=flux\nclass: px-10\n---\n\n## 1930年代：外滩的黄金时代\n\nBy 1930s, the Bund's neoclassical buildings stood like a pearl necklace along the Huangpu River.  \nThe Shikumen alleyways witnessed both the glamour of cheongsam-clad socialites and the birth of the Communist Party in 1921 (Site: 76 Xingye Road).\n\n<v-click>\n\n**建筑瑰宝**：  \n▸ 汇丰银行大楼（1923）  \n▸ 海关大楼（1927）  \n▸ 和平饭店（1929）\n\n</v-click>\n\n---\ntransition: slide-up\nlayout: two-cols\n---\n\n# 1990年：浦东的崛起\n\n::left::\n\n1990年浦东开发开放如同巨人舒展筋骨，陆家嘴从农田蜕变为\"中国改革开放的象征\"（邓小平语）。  \n2023年浦东GDP达1.6万亿元（来源：上海市统计局），占全市经济总量的35%。\n\n<v-click>\n\n**里程碑事件**：  \n▸ 1990年4月18日宣布开发开放  \n▸ 1999年金茂大厦竣工  \n▸ 2015年上海自贸区扩区\n\n</v-click>\n\n::right::\n\n![2023年浦东天际线](https://image.pollinations.ai/prompt/Pudong%20skyline%20in%202023%2C%20modern%20skyscrapers%20in%20Lujiazui%2C%20sunrise%20over%20the%20Huangpu%20River?width=600&height=400&model=flux)\n\n---\ntransition: fade\nlayout: center\nclass: text-center\n---\n\n## 历史与未来的对话\n\n![1920年外滩码头劳工群像 vs 2023年陆家嘴空中走廊](https://image.pollinations.ai/prompt/Side-by-side%20comparison%3A%20left%20-%201920s%20Bund%20dock%20laborers%20in%20sepia%20tone%2C%20right%20-%202023%20Lujiazui%20skywalk%20in%20vibrant%20colors%2C%20labeled%20%22Historical%20photo%20AI%20restored%22?width=1000&height=500&model=flux)\n\n<v-click>\n\n**时空对比**：  \n▸ 1920年：码头工人日均工资0.3银元  \n▸ 2023年：陆家嘴金融从业者平均年薪45万元\n\n</v-click>\n\n---\ntransition: slide-down\nlayout: image-right\nimage: https://image.pollinations.ai/prompt/Infographic%20of%20Shanghai%20Port's%202023%20container%20throughput%2C%2049%20million%20TEU%2C%20modern%20data%20visualization?width=600&height=400&model=flux\n---\n\n## 2023年上海港的成就\n\n▸ **集装箱吞吐量**：4900万TEU  \n▸ **国际航线**：覆盖全球200多个港口  \n▸ **自动化码头**：洋山四期全自动化\n\n<v-click>\n\n**全球排名**：  \n1. 上海港  \n2. 新加坡港  \n3. 宁波舟山港  \n（来源：世界航运理事会）\n\n</v-click>\n\n<style>\n  ul {\n    list-style-type: none;\n    padding-left: 1em;\n  }\n  li {\n    margin-bottom: 0.5em;\n  }\n</style>"
+        }
+      },
+      {
+        "json": {
+          "output": "---\nlayout: image-right\nimage: https://image.pollinations.ai/prompt/A%20composite%20image%20showing%20the%20contrast%20between%20the%20Bund%20and%20Lujiazui%20skyline.%20On%20the%20left%2C%20a%20black%20and%20white%20photograph%20from%201920%20depicting%20the%20historic%20Bund%20with%20European-style%20buildings.%20On%20the%20right%2C%20a%204K%20aerial%20photo%20from%202023%20showcasing%20the%20modern%20Lujiazui%20skyline%20with%20towering%20skyscrapers%20like%20the%20Shanghai%20Tower%20and%20Oriental%20Pearl%20Tower.%20The%20image%20should%20highlight%20the%20dramatic%20transformation%20over%20a%20century.?width=512&height=512&model=flux&nologo=true&seed=304067\n---\n\n# 外滩与陆家嘴天际线对比\n\n**历史与现代的对话**\n\n- **外滩万国建筑群**  \n  1920年代黑白影像中的欧洲风情  \n  52幢历史建筑凝固了远东金融中心的记忆\n\n- **陆家嘴摩天楼群**  \n  2023年4K航拍展现的现代天际线  \n  东方明珠与上海中心构成\"双塔奇观\"\n\n**时空交响**  \n通过黄浦江轮渡连接两个世纪的金融传奇\n\n---\nlayout: default\ntransition: slide-up\n---\n\n# 东方明珠广播电视塔\n\n**城市皇冠上的明珠**\n\n- **建筑特色**  \n  11个大小不一的球体串联  \n  现代科技与浪漫想象的完美结合\n\n- **历史意义**  \n  1994年建成时亚洲第一高塔  \n  浦东开发开放的标志性见证\n\n- **城市景观**  \n  与632米高的上海中心大厦  \n  构成震撼的\"双塔奇观\"天际线\n\n---\nlayout: two-cols\n---\n\n# 上海中心大厦\n\n**云端巨龙**\n\n- **建筑奇迹**  \n  128层螺旋式减震设计  \n  如银色巨龙冲破云层\n\n- **绿色标杆**  \n  获CTBUH 2023认证  \n  \"世界最高绿色建筑\"\n\n::right::\n\n![上海中心](https://image.pollinations.ai/prompt/A%20dramatic%20night%20view%20of%20Shanghai%20Tower%20with%20its%20spiral%20design%20illuminated%20against%20the%20dark%20sky.%20The%20tower%20should%20appear%20as%20a%20silver%20dragon%20soaring%20through%20the%20clouds.?width=400&height=600&model=flux&nologo=true)\n\n---\nlayout: center\nclass: text-center\n---\n\n# 豫园与新天地\n\n**传统与现代的海派交响**\n\n<div grid=\"~ cols-2 gap-4\">\n<div>\n\n**豫园**  \n明代江南园林杰作  \n湖心亭飞檐与九曲桥  \n演绎\"移步换景\"的古典美学  \n元宵灯会列入国家级非遗\n\n</div>\n<div>\n\n**新天地**  \n石库门建筑群新生  \n青砖红窗诉说  \n中西文化交融故事  \n海派文化活态博物馆\n\n</div>\n</div>"
+        }
+      },
+      {
+        "json": {
+          "output": "---\ntransition: fade-out\ntheme: seriph\nbackground: https://source.unsplash.com/random/1920x1080/?shanghai,shikumen\nclass: text-center\n---\n\n# 魔都上海：石库门里的时光交响曲\n\n---\n\n---\ntransition: slide-up\nclass: px-10\n---\n\n## 石库门的建筑瑰宝\n\n当晨曦掠过山花墙头的巴洛克涡卷，石库门弄堂便苏醒在青砖与马头墙的斑驳光影里。这些诞生于19世纪中后期的建筑瑰宝，将江南民居的\"三进两厢\"格局与西方联排住宅巧妙融合，门楣上的西式雕花与中式匾额相映成趣。\n\n<div class=\"text-sm text-gray-500 mt-4\">\n（标注：黄浦区文物保护中心，2022）\n</div>\n\n---\n\n---\nlayout: image-right\nimage: https://image.pollinations.ai/prompt/A%20nighttime%20scene%20of%20Xintiandi's%20Shikumen%20architecture%2C%20showcasing%20the%20contrast%20between%20traditional%20brick%20carvings%20and%20modern%20neon%20lights.%20The%20image%20should%20highlight%20the%20fusion%20of%20historical%20and%20contemporary%20elements%2C%20with%20warm%20lighting%20illuminating%20the%20stone%20gateways%20and%20vibrant%20neon%20signs%20reflecting%20on%20the%20cobblestone%20streets.?width=512&height=512&model=flux&nologo=true&seed=334536\nclass: px-8\n---\n\n## 新天地：城市更新的典范\n\n2001年由美国SOM事务所操刀设计，完整保留了23栋石库门建筑的外立面，内部则注入全球顶级奢侈品牌与米其林餐厅。\n\n**2023年数据显示**：  \n- 日均客流量达5.8万人次  \n- 年营业额突破120亿元  \n\n<div class=\"text-sm text-gray-500 mt-4\">\n（来源：上海商务委年报）\n</div>\n\n---\n\n---\ntransition: fade-in\nclass: px-10\n---\n\n## 田子坊：市井诗篇\n\n艺术家陈逸飞工作室旧址所在的泰康路210弄，如今500余家创意店铺与居民晾晒的衣物共享同一片天空。\n\n*文学化表达*：  \n咖啡香混着油墩子香气，法国画廊的落地窗映出阿婆生煤炉的蓝烟——这是海派文化最生动的蒙太奇。\n\n---\n\n---\ntransition: slide-left\nclass: px-10\n---\n\n## Shanghai Culture: Stone-Gate Dialogues\n\nThe Shikumen (Stone-Gate) houses, emerging in 1860s, feature Western-style arched gateways with Chinese courtyard layouts.\n\n- **Xintiandi's renovation**:  \n  Preserved 92% original facades  \n  Created $1.2B commercial hub  \n\n- **Tianzifang's alleys**:  \n  Host over 200 artists' studios  \n  Coexist with traditional wet markets  \n\n<div class=\"text-sm text-gray-500 mt-4\">\n(Source: Jones Lang LaSalle 2023)\n</div>"
+        }
+      },
+      {
+        "json": {
+          "output": "---\ntransition: fade-out\ncss: custom.css\ntheme: seriph\nbackground: https://cover.sli.dev\nclass: text-center\n---\n\n# Shanghai Gastronomy: A Symphony of Flavors  \n\nThe siren song of xiaolongbao echoes through misty alleyways, where translucent skins shimmer like silk lanterns, cradling molten broth that erupts in a golden geyser at first bite.  \n\n![Xiaolongbao with steam rising](https://image.pollinations.ai/prompt/Xiaolongbao%20with%20steam%20rising%20from%20bamboo%20baskets%2C%20showcasing%20the%2032-layer%20dough%20technique?width=512&height=512&model=flux&nologo=true&seed=377567)  \n*Source: Shanghai Municipal Bureau of Culture and Tourism 2023*\n\n---\ntransition: slide-up\nlayout: two-cols\n---\n\n# Culinary Icons  \n\n::left::\n\n### **Xiaolongbao**  \n- **18 precise folds** encapsulate 5g of pork and 8ml broth  \n- *Perfected at Nanxiang Steamed Bun Restaurant since 1900*  \n- *Pro tip: Poke, sip, savor*  \n\n### **Shengjianbao**  \n- Cast-iron pans achieve **0.3mm crispness**  \n- 2023 consumption: **2.8 million daily**  \n\n::right::\n\n### **Benbang Cuisine**  \n- Marries soy-sauce braising and sugar-glazing  \n- Signature dish requires **3-hour simmering** in aged Shaoxing wine  \n\n![Shanghai food market](https://image.pollinations.ai/prompt/A%20bustling%20Shanghai%20food%20market%20with%20steam%20rising%20from%20bamboo%20baskets%20and%20chefs%20preparing%20dumplings?width=512&height=512&model=flux&nologo=true&seed=377577)  \n\n---\ntransition: fade-in\nclass: px-10\n---\n\n# Global Fusion  \n\n- Michelin-starred venues use **liquid nitrogen (-196°C)** and **edible gold leaf**  \n- Traditional kitchens still begin **4am shifts** for crab roe dumplings  \n\n> *\"A city that eats its crusts first\"*  \n> – Anthony Bourdain, 2016  \n\n<div class=\"abs-tr m-6\">\n  <button @click=\"$slidev.nav.openInEditor()\" class=\"slidev-icon-btn\">\n    <carbon:edit />\n  </button>\n</div>  \n\n<style>\nblockquote {\n  @apply text-xl italic border-l-4 pl-4 border-orange-400;\n}\n</style>"
+        }
+      },
+      {
+        "json": {
+          "output": "---\ntheme: seriph\nbackground: https://source.unsplash.com/random/1920x1080/?city,future\nclass: text-center\ntransition: slide-up\n---\n\n# 魔都未来：卓越全球城市的星辰征途\n\n---\n\n## Shanghai: A New Era of Ambition\n\n- **文学化表达**  \n  Shanghai stands at the dawn of a new era, where Huangpu River's waves whisper tales of ambition.  \n  The city's blueprint as a \"global excellence hub\" unfolds through bold initiatives.\n\n- **Key Initiatives**  \n  - Lingang Special Area: Pioneering cross-border data flows (Shanghai Municipal Govt 2023)  \n  - Zhangjiang Science City: Accelerating quantum computing breakthroughs  \n  - By 2035: 6% annual GDP growth in tech sectors (PwC China Report)\n\n<style>\nh2 {\n  background-color: #2B90B6;\n  background-image: linear-gradient(45deg, #4EC5D4 10%, #146b8c 20%);\n  background-size: 100%;\n  -webkit-background-clip: text;\n  -moz-background-clip: text;\n  -webkit-text-fill-color: transparent; \n  -moz-text-fill-color: transparent;\n}\n</style>\n\n---\nlayout: image-right\nimage: https://image.pollinations.ai/prompt/AI-generated%20futuristic%20skyline%20of%20Lujiazui%2C%20Pudong%2C%20Shanghai%2C%20showcasing%20cutting-edge%20architecture%20and%20smart%20city%20technologies%2C%20with%20a%20futuristic%20glow%20and%20advanced%20infrastructure?width=1024&height=768&model=flux&nologo=true&seed=418715\ntransition: fade\n---\n\n## 浦东陆家嘴天际线AI概念图\n\n*(设计构想: AI-generated futuristic skyline of Lujiazui, Pudong, Shanghai)*\n\n<style>\nimg {\n  border-radius: 8px;\n  box-shadow: 0 4px 8px rgba(0,0,0,0.2);\n}\n</style>\n\n---\nclass: px-20\ntransition: slide-up\n---\n\n## 上海，永远给世界惊喜！  \n### Shanghai, Forever Surprising the World!\n\n- **Heritage Meets Innovation**  \n  - Restored Shikumen smart homes  \n  - AI-powered \"City Brain\" governance  \n\n- **A City of Legends**  \n  Every sunrise writes a new legend\n\n<style>\nh3 {\n  color: #e74c3c;\n  text-shadow: 1px 1px 2px rgba(0,0,0,0.1);\n}\nul {\n  text-align: left;\n  margin-left: 2em;\n}\n</style>"
+        }
+      }
+    ]
+  },
+  "connections": {
+    "Read/Write Files from Disk": {
+      "main": [
+        [
+          {
+            "node": "Extract from File",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extract from File": {
+      "main": [
+        [
+          {
+            "node": "Merge",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "DeepSeek Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Agent": {
+      "main": [
+        [
+          {
+            "node": "Merge1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Convert to File": {
+      "main": [
+        [
+          {
+            "node": "Read/Write Files from Disk1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code Tool": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "DeepSeek Chat Model1": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Agent1",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code": {
+      "main": [
+        [
+          {
+            "node": "Merge",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Agent1": {
+      "main": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Aggregate": {
+      "main": [
+        [
+          {
+            "node": "Convert to File",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "Read/Write Files from Disk",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Edit Fields1",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Read/Write Files from Disk2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Read/Write Files from Disk1": {
+      "main": [
+        [
+          {
+            "node": "Execute Command",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Edit Fields1": {
+      "main": [
+        [
+          {
+            "node": "Code",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Merge": {
+      "main": [
+        [
+          {
+            "node": "AI Agent1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Read/Write Files from Disk2": {
+      "main": [
+        [
+          {
+            "node": "Extract from File1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extract from File1": {
+      "main": [
+        [
+          {
+            "node": "Edit Fields3",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Merge1": {
+      "main": [
+        [
+          {
+            "node": "AI Agent2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "DeepSeek Chat Model2": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Agent2",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Agent2": {
+      "main": [
+        [
+          {
+            "node": "Code1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Edit Fields3": {
+      "main": [
+        [
+          {
+            "node": "Merge1",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "Code1": {
+      "main": [
+        [
+          {
+            "node": "Aggregate",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "83a05433-41f4-4450-a831-15acd0f0889c",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "d78d268031f654ff15a7ba81f0603e3a51125823e3c40dfb78e0bc207b997b5a"
+  },
+  "id": "uXh8NV15Eba995RZ",
+  "tags": []
+}

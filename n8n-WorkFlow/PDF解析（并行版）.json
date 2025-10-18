@@ -1,0 +1,3104 @@
+{
+  "name": "PDF解析（并行版）",
+  "nodes": [
+    {
+      "parameters": {
+        "operation": "write",
+        "fileName": "/data/files/tmp_out.md",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.readWriteFile",
+      "typeVersion": 1,
+      "position": [
+        3840,
+        576
+      ],
+      "id": "b0db9b15-9bfe-4845-a43a-3b00000064d1",
+      "name": "Read/Write Files from Disk1"
+    },
+    {
+      "parameters": {
+        "operation": "toText",
+        "sourceProperty": "output",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.convertToFile",
+      "typeVersion": 1.1,
+      "position": [
+        3664,
+        576
+      ],
+      "id": "9d012980-aeb3-4076-a239-a0cd7ec4dbff",
+      "name": "Convert to File"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "6ef62ecf-bc19-4e86-a3fe-a666b1e96796",
+              "name": "output",
+              "value": "={{$json.output}}",
+              "type": "string"
+            }
+          ]
+        },
+        "includeOtherFields": true,
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        3472,
+        576
+      ],
+      "id": "72e6b401-b777-4e9a-973c-2ed4f3cadc78",
+      "name": "Edit Fields"
+    },
+    {
+      "parameters": {
+        "fileSelector": "D:/Presentation-PPTAgent/slidev/slidev-exam.md",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.readWriteFile",
+      "typeVersion": 1,
+      "position": [
+        -752,
+        416
+      ],
+      "id": "3afeaae4-fada-46e9-94c3-cd8a53a2fd6f",
+      "name": "Read/Write Files from Disk2"
+    },
+    {
+      "parameters": {
+        "operation": "text",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.extractFromFile",
+      "typeVersion": 1,
+      "position": [
+        48,
+        560
+      ],
+      "id": "3a1c7347-e4a0-4bd0-9d09-6978b92527ef",
+      "name": "Extract from File1"
+    },
+    {
+      "parameters": {
+        "mode": "combine",
+        "combineBy": "combineAll",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3.2,
+      "position": [
+        2704,
+        576
+      ],
+      "id": "c3052820-40a6-4660-a990-788a7c2f6bfe",
+      "name": "Merge",
+      "alwaysOutputData": true
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "={{ $json.result }}",
+        "options": {
+          "systemMessage": "根据传入的中心观点，生成一份ppt的markdown文件，不要管序号，内容相似即可合并（其中有部分包含图片信息，即![]()格式的图片，如果包含图片信息的文字部分没有被舍弃则图片需保留在对应的文字附近），要求输出的ppt页数少于15页，不要开头的markdown```，遇到\\n删除\\n，按正常的markdown语法换行。"
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 2,
+      "position": [
+        2128,
+        768
+      ],
+      "id": "fedcb308-1d4d-40b3-9ea9-d03e6da14309",
+      "name": "AI Agent2"
+    },
+    {
+      "parameters": {
+        "fileSelector": "/data/files/demo1/demo1.md",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.readWriteFile",
+      "typeVersion": 1,
+      "position": [
+        -752,
+        688
+      ],
+      "id": "f088a531-3728-4347-8012-94741d92c2b8",
+      "name": "Read/Write Files from Disk3"
+    },
+    {
+      "parameters": {
+        "operation": "text",
+        "destinationKey": "PDF",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.extractFromFile",
+      "typeVersion": 1,
+      "position": [
+        -448,
+        768
+      ],
+      "id": "a64ae05d-e504-48f8-9f7f-278b000781f4",
+      "name": "Extract from File2"
+    },
+    {
+      "parameters": {
+        "jsCode": "const MAX_CHUNK_SIZE = 2000; // 最大块大小（按字符数计算）\nconst SENTENCE_ENDINGS = ['.', '?', '!', '。', '？', '！', '\"', \"'\", '”', '…', '\\n']; // 句子结束标记\nconst OPEN_BRACKETS = ['(', '[', '{', '（', '［', '｛'];\nconst CLOSE_BRACKETS = [')', ']', '}', '）', '］', '｝'];\nconst BRACKET_PAIRS = {\n  '(': ')',\n  '[': ']',\n  '{': '}',\n  '（': '）',\n  '［': '］',\n  '｛': '｝'\n};\n\n// 获取输入文本\nconst inputText = $input.first().json.PDF || '';\n\nif (!inputText) {\n  return { json: { error: \"No input text provided\" } };\n}\n\n// 文本分割函数\nfunction splitText(text, maxSize) {\n  const chunks = [];\n  let start = 0;\n  \n  while (start < text.length) {\n    let end = Math.min(start + maxSize, text.length);\n    \n    // 如果正好在文本末尾\n    if (end >= text.length) {\n      chunks.push(text.substring(start));\n      break;\n    }\n    \n    // 寻找最近的句子结束点\n    let found = false;\n    let bestPosition = end;\n    let bracketStack = [];\n    \n    // 向前扫描寻找最佳分割点\n    for (let i = start; i < end; i++) {\n      // 更新括号栈状态\n      if (OPEN_BRACKETS.includes(text[i])) {\n        bracketStack.push(text[i]);\n      } else if (CLOSE_BRACKETS.includes(text[i])) {\n        if (bracketStack.length > 0) {\n          const lastOpen = bracketStack[bracketStack.length - 1];\n          if (BRACKET_PAIRS[lastOpen] === text[i]) {\n            bracketStack.pop();\n          }\n        }\n      }\n      \n      // 检查是否满足分割条件\n      if (SENTENCE_ENDINGS.includes(text[i]) && bracketStack.length === 0) {\n        // 确保不是连续标点（如省略号）\n        if (i < text.length - 1 && SENTENCE_ENDINGS.includes(text[i + 1])) {\n          continue;\n        }\n        \n        // 检查是否在引号内\n        let inQuotes = false;\n        for (let j = i; j >= start; j--) {\n          if (['\"', \"'\", '“', '”'].includes(text[j])) {\n            inQuotes = !inQuotes;\n          }\n        }\n        \n        if (!inQuotes) {\n          bestPosition = i + 1;\n          found = true;\n        }\n      }\n    }\n    \n    // 如果找到合适的分割点\n    if (found) {\n      chunks.push(text.substring(start, bestPosition).trim());\n      start = bestPosition;\n    } \n    // 如果没有找到合适的结束点，尝试向后扫描\n    else {\n      let extendedEnd = Math.min(start + maxSize * 1.5, text.length);\n      let bracketStack = [];\n      \n      // 初始化括号栈（从start到end）\n      for (let i = start; i < end; i++) {\n        if (OPEN_BRACKETS.includes(text[i])) {\n          bracketStack.push(text[i]);\n        } else if (CLOSE_BRACKETS.includes(text[i])) {\n          if (bracketStack.length > 0) {\n            const lastOpen = bracketStack[bracketStack.length - 1];\n            if (BRACKET_PAIRS[lastOpen] === text[i]) {\n              bracketStack.pop();\n            }\n          }\n        }\n      }\n      \n      // 向后扫描直到括号平衡或达到扩展长度\n      for (let i = end; i < extendedEnd; i++) {\n        if (CLOSE_BRACKETS.includes(text[i])) {\n          if (bracketStack.length > 0) {\n            const lastOpen = bracketStack[bracketStack.length - 1];\n            if (BRACKET_PAIRS[lastOpen] === text[i]) {\n              bracketStack.pop();\n              \n              // 当括号平衡且是句子结束时分割\n              if (bracketStack.length === 0 && SENTENCE_ENDINGS.includes(text[i])) {\n                end = i + 1;\n                found = true;\n                break;\n              }\n            }\n          }\n        }\n      }\n      \n      // 如果仍然没有找到合适的分割点，强制在扩展长度处分隔\n      chunks.push(text.substring(start, end).trim());\n      start = end;\n    }\n  }\n  \n  return chunks;\n}\n\n// 执行分割\nconst chunks = splitText(inputText, MAX_CHUNK_SIZE);\n\n// 输出结果\nreturn chunks.map(chunk => {\n  // 检查括号是否平衡\n  let bracketStack = [];\n  let bracketBalanced = true;\n  \n  for (let char of chunk) {\n    if (OPEN_BRACKETS.includes(char)) {\n      bracketStack.push(char);\n    } else if (CLOSE_BRACKETS.includes(char)) {\n      if (bracketStack.length === 0) {\n        bracketBalanced = false;\n        break;\n      }\n      \n      const lastOpen = bracketStack.pop();\n      if (BRACKET_PAIRS[lastOpen] !== char) {\n        bracketBalanced = false;\n        break;\n      }\n    }\n  }\n  \n  if (bracketStack.length > 0) bracketBalanced = false;\n  \n  return {\n    json: {\n      chunk,\n      characterCount: chunk.length,\n      warnings: [\n        chunk.length > MAX_CHUNK_SIZE * 1.1 ? \"Chunk exceeds size limit\" : \"\",\n        !bracketBalanced ? \"Unbalanced brackets\" : \"\"\n      ].filter(w => w).join('; ') || undefined\n    }\n  };\n});"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -224,
+        800
+      ],
+      "id": "ce00ef93-d4e7-444b-93df-2753882da94b",
+      "name": "Code1"
+    },
+    {
+      "parameters": {
+        "fieldsToAggregate": {
+          "fieldToAggregate": [
+            {
+              "fieldToAggregate": "output"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.aggregate",
+      "typeVersion": 1,
+      "position": [
+        288,
+        688
+      ],
+      "id": "ffe4ff7b-2d3d-492e-8258-6d3a78c243ca",
+      "name": "Aggregate1"
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatDeepSeek",
+      "typeVersion": 1,
+      "position": [
+        2128,
+        944
+      ],
+      "id": "b9b6757b-91a2-4327-8e72-682717a08f07",
+      "name": "DeepSeek Chat Model3",
+      "credentials": {
+        "deepSeekApi": {
+          "id": "rTZfsAYOCwTcpnXx",
+          "name": "DeepSeek account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "={{ $json.output }}",
+        "options": {
+          "systemMessage": "=你是一个slidev的ppt的专业修饰员，按照我给你的slidev的语法范本：{{ $json.data }}，将我的输入的prompt里的ppt修饰完善，prompt里的文字内容和图片不要改，全部保留，不要有开头的说明“这是用slidev修饰的版本......”以及“markdown```”，但要在每一页开头添加“---”，结尾不要有markdown文件内容之外的东西，输出一个正确格式的markdown文件，遇到\\n则删除\\n，按照markdown语法进行换行"
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 2,
+      "position": [
+        2960,
+        576
+      ],
+      "id": "c1a340fb-e340-4e94-8aa0-a3e091fda64a",
+      "name": "AI Agent5"
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatDeepSeek",
+      "typeVersion": 1,
+      "position": [
+        2928,
+        816
+      ],
+      "id": "8c39df88-3342-4c4b-aec2-4a017638a4e4",
+      "name": "DeepSeek Chat Model5",
+      "credentials": {
+        "deepSeekApi": {
+          "id": "rTZfsAYOCwTcpnXx",
+          "name": "DeepSeek account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "fieldToSplitOut": "images",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.splitOut",
+      "typeVersion": 1,
+      "position": [
+        0,
+        1328
+      ],
+      "id": "66b972d5-9ed6-4534-ba20-89ddefa9df01",
+      "name": "Split Out"
+    },
+    {
+      "parameters": {
+        "operation": "binaryToPropery",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.extractFromFile",
+      "typeVersion": 1,
+      "position": [
+        256,
+        1152
+      ],
+      "id": "6b751388-65d2-4481-a7af-902062f59c69",
+      "name": "ToBase64"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Loop over input items and add a new field called 'myNewField' to the JSON of each one\nconst item = $input.first();\nconst textContent = item.json.data;\nconsole.log(\"File content preview:\", textContent.substring(0, 1000));\nconst imgPattern = /!\\[.*?\\]\\s*\\(\\s*(['\"]?)(?:\\.?\\/?)?images\\/([^\\s'\"]+)\\1\\s*\\)/gi;\nconst results = [];\nlet match;\nwhile ((match = imgPattern.exec(textContent)) !== null) {\n  // 匹配结果中：\n  // match[0] - 完整匹配\n  // match[1] - 引号（如果有）\n  // match[2] - 图片文件名\n  const imgUrl = `/data/files/demo1/images/${match[2]}`;\n  const startPos = match.index;\n  const endPos = startPos + match[0].length; \n  // 计算上下文范围\n  const contextStart = Math.max(0, startPos - 400);\n  const contextEnd = Math.min(textContent.length, endPos + 400);\n  // 提取上下文\n  const context = textContent.substring(contextStart, contextEnd);   \n  // 添加到结果\n  results.push({\n    image: imgUrl,\n    context: context,\n    position: startPos\n  });\n}\n\n// 返回处理结果\nreturn [{\n  json: {\n    images: results,\n    total: results.length,\n  }\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -208,
+        1296
+      ],
+      "id": "8f700540-f0ad-4cc7-81a4-be8510d32ace",
+      "name": "getImage"
+    },
+    {
+      "parameters": {
+        "fileSelector": "/data/files/demo1/demo1.md",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.readWriteFile",
+      "typeVersion": 1,
+      "position": [
+        -768,
+        928
+      ],
+      "id": "80542c8a-671f-418c-a1a3-044fb23653ac",
+      "name": "ReadMD"
+    },
+    {
+      "parameters": {
+        "mode": "combine",
+        "combineBy": "combineByPosition",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3.2,
+      "position": [
+        896,
+        1744
+      ],
+      "id": "56f7a3ff-a82f-4628-b96a-ba943f64dd64",
+      "name": "Merge1"
+    },
+    {
+      "parameters": {
+        "jsCode": "return items.map(item => ({\n  json: {\n    image: item.json.image,\n    content: item.json.description\n  }\n}));"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1120,
+        1584
+      ],
+      "id": "2c86a26b-cacf-41cb-9ad9-52de9294db51",
+      "name": "Filter"
+    },
+    {
+      "parameters": {
+        "operation": "text",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.extractFromFile",
+      "typeVersion": 1,
+      "position": [
+        -512,
+        1232
+      ],
+      "id": "1189f5db-d2fe-412e-9eb2-3cae56ff8a8f",
+      "name": "Extract from File3"
+    },
+    {
+      "parameters": {
+        "fileSelector": "={{ $json.image }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.readWriteFile",
+      "typeVersion": 1,
+      "position": [
+        128,
+        1152
+      ],
+      "id": "7a75985f-a16c-4316-b77f-f27d918817e1",
+      "name": "Read/Write Files from Disk4"
+    },
+    {
+      "parameters": {
+        "mode": "combine",
+        "combineBy": "combineByPosition",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3.2,
+      "position": [
+        368,
+        1312
+      ],
+      "id": "5b39bb0f-84c3-455a-8264-3d5be092a10e",
+      "name": "Merge2"
+    },
+    {
+      "parameters": {
+        "aggregate": "aggregateAllItemData",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.aggregate",
+      "typeVersion": 1,
+      "position": [
+        1792,
+        1776
+      ],
+      "id": "609cf7c8-8f6e-4294-9df9-6c0f37378cfd",
+      "name": "Aggregate2"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api-inference.huggingface.co/models/sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify($json) }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        2176,
+        1232
+      ],
+      "id": "a2dc5c0b-6a5f-4663-85c7-7146933e1994",
+      "name": "HTTP Request1",
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "XJL2bxoegTt88xZs",
+          "name": "Header Auth account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "mode": "combine",
+        "combineBy": "combineAll",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3.2,
+      "position": [
+        1648,
+        1456
+      ],
+      "id": "9c702d39-d642-46fa-9484-e7679d950a8e",
+      "name": "Merge4"
+    },
+    {
+      "parameters": {
+        "jsCode": "return items.map(item => {\n  return {\n    json: {\n      inputs: \n        {\n          source_sentence: item.json.content,\n          sentences: item.json.output\n        }\n    }\n  };\n});"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1952,
+        1264
+      ],
+      "id": "ad76ace3-592d-4c89-9eb5-7aa2524df8f0",
+      "name": "Code2"
+    },
+    {
+      "parameters": {
+        "jsCode": "const scores=$input.first().json.mix_data[0].scores;\nconst texts=$input.first().json.mix_data[1].output;\nconst images=$input.first().json.mix_data[2].data;\n\nconst numTexts = texts.length;\nconst numImages = images.length;\nconst results = [];\nfor (let i = 0; i < numImages; i++) {\n  const start = i * numTexts;\n  const chunk = scores.slice(start, start + numTexts);\n  const maxIndex = chunk.indexOf(Math.max(...chunk));\n  results.push({\n    image: images[i].image,\n    bestTextIndex: maxIndex,\n    bestText: texts[maxIndex],\n    similarity: chunk[maxIndex]\n  });\n}\n\nreturn results;"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        3568,
+        1760
+      ],
+      "id": "020d9eb1-2242-46c0-85ab-008a3050e945",
+      "name": "Code3"
+    },
+    {
+      "parameters": {
+        "numberInputs": 3
+      },
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3.2,
+      "position": [
+        3008,
+        1776
+      ],
+      "id": "30cfd512-bb3a-4cd9-bc54-3aa09416987c",
+      "name": "Merge5"
+    },
+    {
+      "parameters": {
+        "aggregate": "aggregateAllItemData",
+        "destinationFieldName": "scores",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.aggregate",
+      "typeVersion": 1,
+      "position": [
+        2432,
+        1216
+      ],
+      "id": "052b2c31-1d08-4bb5-a5e7-aa9b389d0401",
+      "name": "Aggregate3"
+    },
+    {
+      "parameters": {
+        "aggregate": "aggregateAllItemData",
+        "destinationFieldName": "mix_data",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.aggregate",
+      "typeVersion": 1,
+      "position": [
+        3296,
+        1792
+      ],
+      "id": "ea66fe42-0c3e-4c14-bcf7-817f1fef954b",
+      "name": "Aggregate4"
+    },
+    {
+      "parameters": {
+        "jsCode": "const images =$input.first().json.data[0].images\nlet texts = $input.first().json.data[1].output;\n\n// Process each image\nfor (const img of images) {\n  if (img.similarity >= 0.65) {\n    const index = img.bestTextIndex;\n    if (index >= 0 && index < texts.length) {\n      // Append markdown image to the text\n      texts[index] += \"\\n![](\" + img.image + \")\\n\";\n    }\n  }\n}\n\nreturn texts.map(text => ({\n  json: {\n    result: text\n  }\n}));"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        4512,
+        1856
+      ],
+      "id": "2820e440-9c59-4810-99bc-7ac678766316",
+      "name": "Code4"
+    },
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3.2,
+      "position": [
+        4016,
+        1904
+      ],
+      "id": "e55d7187-3ecd-4841-b1d7-5b401df5f2ef",
+      "name": "Merge6"
+    },
+    {
+      "parameters": {
+        "aggregate": "aggregateAllItemData",
+        "destinationFieldName": "images",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.aggregate",
+      "typeVersion": 1,
+      "position": [
+        3776,
+        1760
+      ],
+      "id": "3100f5a3-74e7-4482-945c-f140e6c601e4",
+      "name": "Aggregate5"
+    },
+    {
+      "parameters": {
+        "aggregate": "aggregateAllItemData",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.aggregate",
+      "typeVersion": 1,
+      "position": [
+        4224,
+        1904
+      ],
+      "id": "0ae1a647-1917-436d-a18a-4fb816433448",
+      "name": "Aggregate6"
+    },
+    {
+      "parameters": {
+        "fieldsToAggregate": {
+          "fieldToAggregate": [
+            {
+              "fieldToAggregate": "result"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.aggregate",
+      "typeVersion": 1,
+      "position": [
+        4720,
+        1856
+      ],
+      "id": "7f94552a-c99f-432d-bc31-a68452ae74a5",
+      "name": "Aggregate7"
+    },
+    {
+      "parameters": {
+        "jsCode": "const items = $input.all();\nconst globalHelpers = this.helpers;\n\n// --- 配置 ---\nconst ENDPOINT = 'https://api.deepseek.com/v1/chat/completions';\nconst TOKEN = 'Bearer sk-6cb5f4f271a9459fad010a78940671b7';\nconst CONCURRENCY = 15;  // 最大并发\nconst TIMEOUT = 60000;   // 60秒超时\nconst RETRIES = 2;       // 最多重试2次\n\n// --- 单条请求函数（带重试）---\nasync function callDeepSeek(item, attempt = 0) {\n  try {\n    let sysMessage=\"你是一个文字概括大师，请为我们给你输入的每段文字提炼出简短的观点，直接一条条输出按1.  2.  3. ......形式给出，输出为英文，不要有其他提示文字。\";\n    const res = await globalHelpers.httpRequest({\n      method: 'POST',\n      url: ENDPOINT,\n      body: {\n        model: 'deepseek-chat',\n        messages: [\n          {\n            role: \"system\",\n            content: sysMessage\n          },\n          {\n            role: \"user\",\n            content: item.json.chunk\n          }\n        ],\n      },\n      json: true,\n      headers: {\n        'Content-Type': 'application/json',\n        'Authorization': TOKEN\n      },\n      timeout: TIMEOUT\n    });\n\n    // 关键修复：必须返回有效对象\n    return {\n      json: {\n        content: res.choices[0].message.content, // 添加API响应\n        success: true          // 成功标记\n      },\n    };\n\n  } catch (err) {\n    if (attempt < RETRIES) {\n      await new Promise(r => setTimeout(r, 500 * (attempt + 1)));\n      return callDeepSeek(item, attempt + 1);\n    }\n    return {\n      json: {\n        success: false,\n        error: err.message || 'API请求失败'\n      },\n    };\n  }\n}\n\n// --- 并发控制器（保持顺序）---\nasync function processAll(items, concurrency) {\n  const results = new Array(items.length);  // 预分配结果数组\n  let index = 0;\n  \n  async function worker() {\n    while (index < items.length) {\n      const currentIndex = index++;\n      const item = items[currentIndex];\n      results[currentIndex] = await callDeepSeek(item); // 保持原始顺序\n    }\n  }\n\n  // 启动工作线程\n  const workers = Array.from({ length: Math.min(concurrency, items.length) }, () => worker());\n  await Promise.all(workers);\n  return results;\n}\n\n// --- 执行主流程 ---\ntry {\n  const processed = await processAll(items, CONCURRENCY);\n  return processed.filter(Boolean); // 过滤无效结果\n} catch (error) {\n  return [{ json: { error: \"处理流程失败：\" + error.message }}];\n}\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        32,
+        832
+      ],
+      "id": "9ff90046-e4fb-41ee-bfba-fb4fc1cf92c7",
+      "name": "Concurrency"
+    },
+    {
+      "parameters": {
+        "jsCode": "const items = $input.all();\nconst globalHelpers = this.helpers;\n\n// --- 配置 ---\nconst ENDPOINT = 'https://api.siliconflow.cn/v1/chat/completions';\nconst TOKEN = 'Bearer sk-6cb5f4f271a9459fad010a78940671b7';\nconst CONCURRENCY = 10;  // 最大并发\nconst TIMEOUT = 60000;   // 60秒超时\nconst RETRIES = 2;       // 最多重试2次\n\n// --- 单条请求函数（带重试）---\nasync function callDeepSeekVL2(item, attempt = 0) {\n  try {\n    let base64 = (item.json.data || '') \n               .replace(/\\s/g, '')            // 去换行/空格\n               .slice(0, 200_000);            // 保险截断\n\n  // 2. 拼成合法 data URL\n  const imageUrl = `data:image/jpeg;base64,${base64}`;\n    const res = await globalHelpers.httpRequest({\n      method: 'POST',\n      url: ENDPOINT,\n      body: {\n         model: \"deepseek-ai/deepseek-vl2\",\n      messages: [\n        {\n          role: \"system\",\n          content: \"你需要结合上下文和图片本身进行分析，给出对该图片的文字描述（英文描述，且不超过150字），用于后续图片与对应语义的文字的匹配。需注意上下文中可能包括与该图片无关的内容，请注意辨别。返回的内容只是图片的文字描述，不能包括```json等格式或者“以下是图片描述”等内容，若无法给出图片的描述，则输出“NULL”。\"\n        },\n        {\n          role: \"user\",\n          content: [\n            { type: \"text\", text: item.json.context },\n            { type: \"image_url\", image_url: { url: imageUrl } }\n          ]\n        }\n      ]\n      },\n      json: true,\n      headers: {\n        'Content-Type': 'application/json',\n        'Authorization': TOKEN\n      },\n      timeout: TIMEOUT\n    });\n\n    // 关键修复：必须返回有效对象\n    return {\n      json: {\n        description: res.choices[0].message.content, // 添加API响应\n        success: true          // 成功标记\n      },\n    };\n\n  } catch (err) {\n    if (attempt < RETRIES) {\n      await new Promise(r => setTimeout(r, 500 * (attempt + 1)));\n      return callDeepSeekVL2(item, attempt + 1);\n    }\n    return {\n      json: {\n        success: false,\n        error: err.message || 'API请求失败'\n      },\n    };\n  }\n}\n\n// --- 并发控制器（保持顺序）---\nasync function processAll(items, concurrency) {\n  const results = new Array(items.length);  // 预分配结果数组\n  let index = 0;\n  \n  async function worker() {\n    while (index < items.length) {\n      const currentIndex = index++;\n      const item = items[currentIndex];\n      results[currentIndex] = await callDeepSeekVL2(item); // 保持原始顺序\n    }\n  }\n\n  // 启动工作线程\n  const workers = Array.from({ length: Math.min(concurrency, items.length) }, () => worker());\n  await Promise.all(workers);\n  return results;\n}\n\n// --- 执行主流程 ---\ntry {\n  const processed = await processAll(items, CONCURRENCY);\n  return processed.filter(Boolean); // 过滤无效结果\n} catch (error) {\n  return [{ json: { error: \"处理流程失败：\" + error.message }}];\n}\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        624,
+        1328
+      ],
+      "id": "784db819-5d95-450d-a345-b1a4d07a50b1",
+      "name": "Concurrency1"
+    },
+    {
+      "parameters": {
+        "inputSource": "passthrough"
+      },
+      "type": "n8n-nodes-base.executeWorkflowTrigger",
+      "typeVersion": 1.1,
+      "position": [
+        -1632,
+        720
+      ],
+      "id": "0bff5129-2137-4b6e-a56a-7895c9ff9515",
+      "name": "When Executed by Another Workflow"
+    },
+    {
+      "parameters": {
+        "command": "mineru -p \"D:\\Presentation-PPTAgent\\PDF-parse\\input.pdf -o \"D:\\Presentation-PPTAgent\\PDF-parse\""
+      },
+      "type": "n8n-nodes-base.executeCommand",
+      "typeVersion": 1,
+      "position": [
+        -1392,
+        720
+      ],
+      "id": "5820a28c-1c7d-41c3-86a0-51092da50e7b",
+      "name": "Execute Command1"
+    }
+  ],
+  "pinData": {
+    "HTTP Request1": [
+      {
+        "json": 0.5197020769119263
+      },
+      {
+        "json": 0.5378435850143433
+      },
+      {
+        "json": 0.6006949543952942
+      },
+      {
+        "json": 0.4589115083217621
+      },
+      {
+        "json": 0.5641224980354309
+      },
+      {
+        "json": 0.4170350134372711
+      },
+      {
+        "json": 0.4739384949207306
+      },
+      {
+        "json": 0.40332794189453125
+      },
+      {
+        "json": 0.256090372800827
+      },
+      {
+        "json": 0.40321630239486694
+      },
+      {
+        "json": 0.47913819551467896
+      },
+      {
+        "json": 0.4280981719493866
+      },
+      {
+        "json": 0.3348020017147064
+      },
+      {
+        "json": 0.5312869548797607
+      },
+      {
+        "json": 0.5283285975456238
+      },
+      {
+        "json": 0.39288750290870667
+      },
+      {
+        "json": 0.5384141206741333
+      },
+      {
+        "json": 0.4083530902862549
+      },
+      {
+        "json": 0.27584248781204224
+      },
+      {
+        "json": 0.22395887970924377
+      },
+      {
+        "json": 0.353207528591156
+      },
+      {
+        "json": 0.4420783221721649
+      },
+      {
+        "json": 0.41134053468704224
+      },
+      {
+        "json": 0.41940227150917053
+      },
+      {
+        "json": 0.4490235149860382
+      },
+      {
+        "json": 0.44118532538414
+      },
+      {
+        "json": 0.5042890310287476
+      },
+      {
+        "json": 0.38564610481262207
+      },
+      {
+        "json": 0.3730771839618683
+      },
+      {
+        "json": 0.45856669545173645
+      },
+      {
+        "json": 0.4749302864074707
+      },
+      {
+        "json": 0.37293457984924316
+      },
+      {
+        "json": 0.47157585620880127
+      },
+      {
+        "json": 0.37368476390838623
+      },
+      {
+        "json": 0.38306042551994324
+      },
+      {
+        "json": 0.6370168328285217
+      },
+      {
+        "json": 0.7502228021621704
+      },
+      {
+        "json": 0.7260552048683167
+      },
+      {
+        "json": 0.5939967036247253
+      },
+      {
+        "json": 0.6672659516334534
+      },
+      {
+        "json": 0.680499792098999
+      },
+      {
+        "json": 0.5560203790664673
+      },
+      {
+        "json": 0.5085288286209106
+      },
+      {
+        "json": 0.35045602917671204
+      },
+      {
+        "json": 0.62195885181427
+      },
+      {
+        "json": 0.42474937438964844
+      },
+      {
+        "json": 0.45989030599594116
+      },
+      {
+        "json": 0.2939727306365967
+      },
+      {
+        "json": 0.5425562262535095
+      },
+      {
+        "json": 0.559929609298706
+      },
+      {
+        "json": 0.3390449583530426
+      },
+      {
+        "json": 0.639644205570221
+      },
+      {
+        "json": 0.5264269113540649
+      },
+      {
+        "json": 0.3415203392505646
+      },
+      {
+        "json": 0.4415475130081177
+      },
+      {
+        "json": 0.5071868896484375
+      },
+      {
+        "json": 0.5526130199432373
+      },
+      {
+        "json": 0.508516788482666
+      },
+      {
+        "json": 0.5342235565185547
+      },
+      {
+        "json": 0.6024525761604309
+      },
+      {
+        "json": 0.534540057182312
+      },
+      {
+        "json": 0.6477833986282349
+      },
+      {
+        "json": 0.566870391368866
+      },
+      {
+        "json": 0.5314211249351501
+      },
+      {
+        "json": 0.5108387470245361
+      },
+      {
+        "json": 0.31083551049232483
+      },
+      {
+        "json": 0.508850634098053
+      },
+      {
+        "json": 0.5593249797821045
+      },
+      {
+        "json": 0.42105069756507874
+      },
+      {
+        "json": 0.2853045165538788
+      },
+      {
+        "json": 0.40716174244880676
+      },
+      {
+        "json": 0.6037915349006653
+      },
+      {
+        "json": 0.5244141221046448
+      },
+      {
+        "json": 0.5331454277038574
+      },
+      {
+        "json": 0.4748325049877167
+      },
+      {
+        "json": 0.5844395160675049
+      },
+      {
+        "json": 0.4702231287956238
+      },
+      {
+        "json": 0.6758297085762024
+      },
+      {
+        "json": 0.29672276973724365
+      },
+      {
+        "json": 0.5490595102310181
+      },
+      {
+        "json": 0.4796176254749298
+      },
+      {
+        "json": 0.466825008392334
+      },
+      {
+        "json": 0.3342542350292206
+      },
+      {
+        "json": 0.551304280757904
+      },
+      {
+        "json": 0.4745104908943176
+      },
+      {
+        "json": 0.3743208348751068
+      },
+      {
+        "json": 0.5641250014305115
+      },
+      {
+        "json": 0.5660781860351562
+      },
+      {
+        "json": 0.4018136262893677
+      },
+      {
+        "json": 0.44835448265075684
+      },
+      {
+        "json": 0.39417290687561035
+      },
+      {
+        "json": 0.565157413482666
+      },
+      {
+        "json": 0.5785563588142395
+      },
+      {
+        "json": 0.5739198923110962
+      },
+      {
+        "json": 0.6643350124359131
+      },
+      {
+        "json": 0.4678734838962555
+      },
+      {
+        "json": 0.5246504545211792
+      },
+      {
+        "json": 0.572107195854187
+      },
+      {
+        "json": 0.5103310942649841
+      },
+      {
+        "json": 0.43106284737586975
+      },
+      {
+        "json": 0.2835615873336792
+      },
+      {
+        "json": 0.5797479152679443
+      },
+      {
+        "json": 0.547471284866333
+      },
+      {
+        "json": 0.5361437797546387
+      },
+      {
+        "json": 0.3526573181152344
+      },
+      {
+        "json": 0.4313654601573944
+      },
+      {
+        "json": 0.448396772146225
+      },
+      {
+        "json": 0.4547625482082367
+      },
+      {
+        "json": 0.5784320831298828
+      },
+      {
+        "json": 0.4201664626598358
+      },
+      {
+        "json": 0.43052899837493896
+      },
+      {
+        "json": 0.3838231861591339
+      },
+      {
+        "json": 0.561903715133667
+      },
+      {
+        "json": 0.30019643902778625
+      },
+      {
+        "json": 0.3934735655784607
+      },
+      {
+        "json": 0.6638105511665344
+      },
+      {
+        "json": 0.7427459955215454
+      },
+      {
+        "json": 0.5705330967903137
+      },
+      {
+        "json": 0.6261622905731201
+      },
+      {
+        "json": 0.6905838251113892
+      },
+      {
+        "json": 0.46889951825141907
+      },
+      {
+        "json": 0.590857207775116
+      },
+      {
+        "json": 0.4997071623802185
+      },
+      {
+        "json": 0.38421016931533813
+      },
+      {
+        "json": 0.2562796175479889
+      },
+      {
+        "json": 0.4474966824054718
+      },
+      {
+        "json": 0.4666665196418762
+      },
+      {
+        "json": 0.48500245809555054
+      },
+      {
+        "json": 0.57737135887146
+      },
+      {
+        "json": 0.5857234001159668
+      },
+      {
+        "json": 0.4573443830013275
+      },
+      {
+        "json": 0.5569739937782288
+      },
+      {
+        "json": 0.5412851572036743
+      },
+      {
+        "json": 0.5454968810081482
+      },
+      {
+        "json": 0.3365764319896698
+      },
+      {
+        "json": 0.3822811543941498
+      },
+      {
+        "json": 0.5347691774368286
+      },
+      {
+        "json": 0.49003687500953674
+      },
+      {
+        "json": 0.5346410274505615
+      },
+      {
+        "json": 0.41516441106796265
+      },
+      {
+        "json": 0.17590589821338654
+      },
+      {
+        "json": 0.26755788922309875
+      },
+      {
+        "json": 0.2676122188568115
+      },
+      {
+        "json": 0.2555347681045532
+      },
+      {
+        "json": 0.3143039047718048
+      },
+      {
+        "json": 0.2992349863052368
+      },
+      {
+        "json": 0.2814835011959076
+      },
+      {
+        "json": 0.26721179485321045
+      },
+      {
+        "json": 0.12596620619297028
+      },
+      {
+        "json": 0.24428194761276245
+      },
+      {
+        "json": 0.17564325034618378
+      },
+      {
+        "json": 0.19236110150814056
+      },
+      {
+        "json": 0.14515039324760437
+      },
+      {
+        "json": 0.2903684973716736
+      },
+      {
+        "json": 0.2203429937362671
+      },
+      {
+        "json": 0.13107852637767792
+      },
+      {
+        "json": 0.28422361612319946
+      },
+      {
+        "json": 0.13275378942489624
+      },
+      {
+        "json": 0.10096076130867004
+      },
+      {
+        "json": 0.22936604917049408
+      },
+      {
+        "json": 0.167728990316391
+      },
+      {
+        "json": 0.2997717559337616
+      },
+      {
+        "json": 0.33426767587661743
+      },
+      {
+        "json": 0.28070971369743347
+      },
+      {
+        "json": 0.2875744700431824
+      },
+      {
+        "json": 0.31086307764053345
+      },
+      {
+        "json": 0.28578585386276245
+      },
+      {
+        "json": 0.29477134346961975
+      },
+      {
+        "json": 0.2883780598640442
+      },
+      {
+        "json": 0.31668683886528015
+      },
+      {
+        "json": 0.21085388958454132
+      },
+      {
+        "json": 0.28121012449264526
+      },
+      {
+        "json": 0.12690891325473785
+      },
+      {
+        "json": 0.18564485013484955
+      },
+      {
+        "json": 0.11376926302909851
+      },
+      {
+        "json": 0.21490462124347687
+      },
+      {
+        "json": 0.28131547570228577
+      },
+      {
+        "json": 0.29461953043937683
+      },
+      {
+        "json": 0.43997129797935486
+      },
+      {
+        "json": 0.2921428680419922
+      },
+      {
+        "json": 0.30779778957366943
+      },
+      {
+        "json": 0.2348916232585907
+      },
+      {
+        "json": 0.4303119480609894
+      },
+      {
+        "json": 0.3825127184391022
+      },
+      {
+        "json": 0.5275266170501709
+      },
+      {
+        "json": 0.4197430908679962
+      },
+      {
+        "json": 0.44787049293518066
+      },
+      {
+        "json": 0.5155788064002991
+      },
+      {
+        "json": 0.43782928586006165
+      },
+      {
+        "json": 0.4587491750717163
+      },
+      {
+        "json": 0.5959042310714722
+      },
+      {
+        "json": 0.4317503869533539
+      },
+      {
+        "json": 0.3990120589733124
+      },
+      {
+        "json": 0.3453613221645355
+      },
+      {
+        "json": 0.31756308674812317
+      },
+      {
+        "json": 0.4953155219554901
+      },
+      {
+        "json": 0.48164135217666626
+      },
+      {
+        "json": 0.5271546840667725
+      },
+      {
+        "json": 0.4818958640098572
+      },
+      {
+        "json": 0.3872241973876953
+      },
+      {
+        "json": 0.40024131536483765
+      },
+      {
+        "json": 0.38701483607292175
+      },
+      {
+        "json": 0.570749044418335
+      },
+      {
+        "json": 0.588911235332489
+      },
+      {
+        "json": 0.26664236187934875
+      },
+      {
+        "json": 0.2694912850856781
+      },
+      {
+        "json": 0.379496306180954
+      },
+      {
+        "json": 0.3608732223510742
+      },
+      {
+        "json": 0.390030175447464
+      },
+      {
+        "json": 0.1833299994468689
+      },
+      {
+        "json": 0.3695281147956848
+      },
+      {
+        "json": 0.22913020849227905
+      },
+      {
+        "json": 0.2969161570072174
+      },
+      {
+        "json": 0.39317968487739563
+      },
+      {
+        "json": 0.30881229043006897
+      },
+      {
+        "json": 0.32467591762542725
+      },
+      {
+        "json": 0.26230040192604065
+      },
+      {
+        "json": 0.34582361578941345
+      },
+      {
+        "json": 0.16414883732795715
+      },
+      {
+        "json": 0.19285479187965393
+      },
+      {
+        "json": 0.38813748955726624
+      },
+      {
+        "json": 0.3983983099460602
+      },
+      {
+        "json": 0.2452462613582611
+      },
+      {
+        "json": 0.4046368896961212
+      },
+      {
+        "json": 0.454759418964386
+      },
+      {
+        "json": 0.3532933294773102
+      },
+      {
+        "json": 0.5019220113754272
+      },
+      {
+        "json": 0.31645482778549194
+      },
+      {
+        "json": 0.1277865171432495
+      },
+      {
+        "json": 0.20402516424655914
+      },
+      {
+        "json": 0.2869482636451721
+      },
+      {
+        "json": 0.3145669996738434
+      },
+      {
+        "json": 0.2122778445482254
+      },
+      {
+        "json": 0.3064212501049042
+      },
+      {
+        "json": 0.3294742703437805
+      },
+      {
+        "json": 0.419968843460083
+      },
+      {
+        "json": 0.3331111967563629
+      },
+      {
+        "json": 0.3943915069103241
+      },
+      {
+        "json": 0.4599322974681854
+      },
+      {
+        "json": 0.14211522042751312
+      },
+      {
+        "json": 0.19015708565711975
+      },
+      {
+        "json": 0.34469687938690186
+      },
+      {
+        "json": 0.3028489947319031
+      },
+      {
+        "json": 0.36084020137786865
+      },
+      {
+        "json": 0.1570073962211609
+      },
+      {
+        "json": 0.5653992295265198
+      },
+      {
+        "json": 0.5720577836036682
+      },
+      {
+        "json": 0.5809379816055298
+      },
+      {
+        "json": 0.6113166809082031
+      },
+      {
+        "json": 0.591428279876709
+      },
+      {
+        "json": 0.46800488233566284
+      },
+      {
+        "json": 0.46840372681617737
+      },
+      {
+        "json": 0.4780154526233673
+      },
+      {
+        "json": 0.30987587571144104
+      },
+      {
+        "json": 0.331676721572876
+      },
+      {
+        "json": 0.5068619847297668
+      },
+      {
+        "json": 0.5000790357589722
+      },
+      {
+        "json": 0.38715821504592896
+      },
+      {
+        "json": 0.7115623950958252
+      },
+      {
+        "json": 0.6571096181869507
+      },
+      {
+        "json": 0.36675572395324707
+      },
+      {
+        "json": 0.6199696660041809
+      },
+      {
+        "json": 0.380120187997818
+      },
+      {
+        "json": 0.3279605507850647
+      },
+      {
+        "json": 0.3128211498260498
+      },
+      {
+        "json": 0.4348517060279846
+      },
+      {
+        "json": 0.4509102702140808
+      },
+      {
+        "json": 0.40274882316589355
+      },
+      {
+        "json": 0.6951323747634888
+      },
+      {
+        "json": 0.5904457569122314
+      },
+      {
+        "json": 0.47562652826309204
+      },
+      {
+        "json": 0.643035888671875
+      },
+      {
+        "json": 0.5962531566619873
+      },
+      {
+        "json": 0.3797452449798584
+      },
+      {
+        "json": 0.3626311719417572
+      },
+      {
+        "json": 0.32642191648483276
+      },
+      {
+        "json": 0.5839120745658875
+      },
+      {
+        "json": 0.6642672419548035
+      },
+      {
+        "json": 0.6024690270423889
+      },
+      {
+        "json": 0.29721784591674805
+      },
+      {
+        "json": 0.4852789640426636
+      },
+      {
+        "json": 0.592151403427124
+      },
+      {
+        "json": 0.6020499467849731
+      },
+      {
+        "json": 0.4373266100883484
+      },
+      {
+        "json": 0.5310589075088501
+      },
+      {
+        "json": 0.478370726108551
+      },
+      {
+        "json": 0.3757423758506775
+      },
+      {
+        "json": 0.4203791320323944
+      },
+      {
+        "json": 0.2990787625312805
+      },
+      {
+        "json": 0.41671234369277954
+      },
+      {
+        "json": 0.3999117910861969
+      },
+      {
+        "json": 0.3731786608695984
+      },
+      {
+        "json": 0.1926841288805008
+      },
+      {
+        "json": 0.4397546350955963
+      },
+      {
+        "json": 0.5226091146469116
+      },
+      {
+        "json": 0.32260188460350037
+      },
+      {
+        "json": 0.5124992728233337
+      },
+      {
+        "json": 0.40837544202804565
+      },
+      {
+        "json": 0.23860377073287964
+      },
+      {
+        "json": 0.2638372778892517
+      },
+      {
+        "json": 0.42509791254997253
+      },
+      {
+        "json": 0.34628716111183167
+      },
+      {
+        "json": 0.39405420422554016
+      },
+      {
+        "json": 0.4489859938621521
+      },
+      {
+        "json": 0.42684170603752136
+      },
+      {
+        "json": 0.40971916913986206
+      },
+      {
+        "json": 0.5566604137420654
+      },
+      {
+        "json": 0.4437631368637085
+      },
+      {
+        "json": 0.42889392375946045
+      },
+      {
+        "json": 0.49439701437950134
+      },
+      {
+        "json": 0.3717474341392517
+      },
+      {
+        "json": 0.44367241859436035
+      },
+      {
+        "json": 0.4614562690258026
+      },
+      {
+        "json": 0.38644713163375854
+      },
+      {
+        "json": 0.26956072449684143
+      },
+      {
+        "json": 0.4248639643192291
+      },
+      {
+        "json": 0.331186443567276
+      },
+      {
+        "json": 0.4510061740875244
+      },
+      {
+        "json": 0.287570983171463
+      },
+      {
+        "json": 0.47113069891929626
+      },
+      {
+        "json": 0.5873591899871826
+      },
+      {
+        "json": 0.48865175247192383
+      },
+      {
+        "json": 0.44247034192085266
+      },
+      {
+        "json": 0.21449469029903412
+      },
+      {
+        "json": 0.32608240842819214
+      },
+      {
+        "json": 0.2797432243824005
+      },
+      {
+        "json": 0.10612229257822037
+      },
+      {
+        "json": 0.043087419122457504
+      },
+      {
+        "json": 0.32445773482322693
+      },
+      {
+        "json": 0.26346614956855774
+      },
+      {
+        "json": 0.04195138439536095
+      },
+      {
+        "json": 0.3192821741104126
+      },
+      {
+        "json": 0.24270056188106537
+      },
+      {
+        "json": 0.31521427631378174
+      },
+      {
+        "json": 0.30332937836647034
+      },
+      {
+        "json": 0.19166280329227448
+      },
+      {
+        "json": 0.34627318382263184
+      },
+      {
+        "json": 0.36757025122642517
+      },
+      {
+        "json": 0.30288735032081604
+      },
+      {
+        "json": 0.41655105352401733
+      },
+      {
+        "json": 0.4311673045158386
+      },
+      {
+        "json": 0.48594191670417786
+      },
+      {
+        "json": 0.3613123595714569
+      },
+      {
+        "json": 0.4353005290031433
+      },
+      {
+        "json": 0.4229263365268707
+      },
+      {
+        "json": 0.3414207994937897
+      },
+      {
+        "json": 0.4364670515060425
+      },
+      {
+        "json": 0.38770008087158203
+      },
+      {
+        "json": 0.30530354380607605
+      },
+      {
+        "json": 0.1649193912744522
+      },
+      {
+        "json": 0.3173019289970398
+      },
+      {
+        "json": 0.5188065767288208
+      },
+      {
+        "json": 0.6206191182136536
+      },
+      {
+        "json": 0.25070077180862427
+      },
+      {
+        "json": 0.5374239683151245
+      },
+      {
+        "json": 0.5562782287597656
+      },
+      {
+        "json": 0.5942578315734863
+      },
+      {
+        "json": 0.2852644622325897
+      },
+      {
+        "json": 0.19594521820545197
+      },
+      {
+        "json": 0.28214359283447266
+      },
+      {
+        "json": 0.14073462784290314
+      },
+      {
+        "json": 0.1269514560699463
+      },
+      {
+        "json": 0.03039848431944847
+      },
+      {
+        "json": 0.33653342723846436
+      },
+      {
+        "json": 0.2698199450969696
+      },
+      {
+        "json": 0.05083426460623741
+      },
+      {
+        "json": 0.30903372168540955
+      },
+      {
+        "json": 0.15971685945987701
+      },
+      {
+        "json": 0.16740360856056213
+      },
+      {
+        "json": 0.2950553297996521
+      },
+      {
+        "json": 0.15376591682434082
+      },
+      {
+        "json": 0.3462263345718384
+      },
+      {
+        "json": 0.22877579927444458
+      },
+      {
+        "json": 0.33059385418891907
+      },
+      {
+        "json": 0.4711882770061493
+      },
+      {
+        "json": 0.49808046221733093
+      },
+      {
+        "json": 0.6796036958694458
+      },
+      {
+        "json": 0.34457695484161377
+      },
+      {
+        "json": 0.26120924949645996
+      },
+      {
+        "json": 0.4176456928253174
+      },
+      {
+        "json": 0.22283320128917694
+      },
+      {
+        "json": 0.39476433396339417
+      },
+      {
+        "json": 0.31155097484588623
+      },
+      {
+        "json": 0.32513630390167236
+      },
+      {
+        "json": 0.15085385739803314
+      },
+      {
+        "json": 0.3363836705684662
+      },
+      {
+        "json": 0.360911101102829
+      },
+      {
+        "json": 0.49884700775146484
+      },
+      {
+        "json": 0.31990939378738403
+      },
+      {
+        "json": 0.4801849126815796
+      },
+      {
+        "json": 0.35881465673446655
+      },
+      {
+        "json": 0.45987874269485474
+      },
+      {
+        "json": 0.38827845454216003
+      },
+      {
+        "json": 0.25276151299476624
+      },
+      {
+        "json": 0.21625123918056488
+      },
+      {
+        "json": 0.37139713764190674
+      },
+      {
+        "json": 0.27285656332969666
+      },
+      {
+        "json": 0.21501754224300385
+      },
+      {
+        "json": 0.37207484245300293
+      },
+      {
+        "json": 0.3426688313484192
+      },
+      {
+        "json": 0.1933417022228241
+      },
+      {
+        "json": 0.2888009548187256
+      },
+      {
+        "json": 0.2819782495498657
+      },
+      {
+        "json": 0.1839536726474762
+      },
+      {
+        "json": 0.22972507774829865
+      },
+      {
+        "json": 0.35494986176490784
+      },
+      {
+        "json": 0.3462180495262146
+      },
+      {
+        "json": 0.25533413887023926
+      },
+      {
+        "json": 0.2969398498535156
+      },
+      {
+        "json": 0.3639926016330719
+      },
+      {
+        "json": 0.41739436984062195
+      },
+      {
+        "json": 0.4477102756500244
+      },
+      {
+        "json": 0.4065183401107788
+      },
+      {
+        "json": 0.40479815006256104
+      },
+      {
+        "json": 0.5074062347412109
+      },
+      {
+        "json": 0.3174062669277191
+      },
+      {
+        "json": 0.4404025673866272
+      },
+      {
+        "json": 0.34608057141304016
+      },
+      {
+        "json": 0.37951698899269104
+      },
+      {
+        "json": 0.2500923275947571
+      },
+      {
+        "json": 0.476793110370636
+      },
+      {
+        "json": 0.42248520255088806
+      },
+      {
+        "json": 0.4936690628528595
+      },
+      {
+        "json": 0.5668628811836243
+      },
+      {
+        "json": 0.4919615089893341
+      },
+      {
+        "json": 0.4683435559272766
+      },
+      {
+        "json": 0.3814004063606262
+      },
+      {
+        "json": 0.5803643465042114
+      },
+      {
+        "json": 0.33993175625801086
+      },
+      {
+        "json": 0.4410892128944397
+      },
+      {
+        "json": 0.5881907939910889
+      },
+      {
+        "json": 0.4943593740463257
+      },
+      {
+        "json": 0.3728140592575073
+      },
+      {
+        "json": 0.6099457144737244
+      },
+      {
+        "json": 0.579193651676178
+      },
+      {
+        "json": 0.453435480594635
+      },
+      {
+        "json": 0.5827572345733643
+      },
+      {
+        "json": 0.4542507529258728
+      },
+      {
+        "json": 0.3451916575431824
+      },
+      {
+        "json": 0.30231085419654846
+      },
+      {
+        "json": 0.5108334422111511
+      },
+      {
+        "json": 0.47918111085891724
+      },
+      {
+        "json": 0.5066289305686951
+      },
+      {
+        "json": 0.6023649573326111
+      },
+      {
+        "json": 0.5267767906188965
+      },
+      {
+        "json": 0.45635703206062317
+      },
+      {
+        "json": 0.5480313301086426
+      },
+      {
+        "json": 0.6848340630531311
+      },
+      {
+        "json": 0.6470403075218201
+      },
+      {
+        "json": 0.4227827191352844
+      },
+      {
+        "json": 0.28990182280540466
+      },
+      {
+        "json": 0.5323938131332397
+      },
+      {
+        "json": 0.536551833152771
+      },
+      {
+        "json": 0.5320236682891846
+      },
+      {
+        "json": 0.3058101534843445
+      },
+      {
+        "json": 0.31061026453971863
+      },
+      {
+        "json": 0.25076156854629517
+      },
+      {
+        "json": 0.38567376136779785
+      },
+      {
+        "json": 0.3155447542667389
+      },
+      {
+        "json": 0.33324047923088074
+      },
+      {
+        "json": 0.2978666126728058
+      },
+      {
+        "json": 0.27446117997169495
+      },
+      {
+        "json": 0.3309228718280792
+      },
+      {
+        "json": 0.20137706398963928
+      },
+      {
+        "json": 0.27548420429229736
+      },
+      {
+        "json": 0.3296499252319336
+      },
+      {
+        "json": 0.33250561356544495
+      },
+      {
+        "json": 0.24113161861896515
+      },
+      {
+        "json": 0.3582523465156555
+      },
+      {
+        "json": 0.35234782099723816
+      },
+      {
+        "json": 0.2355944812297821
+      },
+      {
+        "json": 0.2164645940065384
+      },
+      {
+        "json": 0.2664872705936432
+      },
+      {
+        "json": 0.14180980622768402
+      },
+      {
+        "json": 0.13043546676635742
+      },
+      {
+        "json": 0.2633148431777954
+      },
+      {
+        "json": 0.33119654655456543
+      },
+      {
+        "json": 0.23583489656448364
+      },
+      {
+        "json": 0.31701087951660156
+      },
+      {
+        "json": 0.32451242208480835
+      },
+      {
+        "json": 0.3062606155872345
+      },
+      {
+        "json": 0.38218915462493896
+      },
+      {
+        "json": 0.35471558570861816
+      },
+      {
+        "json": 0.2971021831035614
+      },
+      {
+        "json": 0.2814384996891022
+      },
+      {
+        "json": 0.3380104601383209
+      },
+      {
+        "json": 0.19443725049495697
+      },
+      {
+        "json": 0.26417312026023865
+      },
+      {
+        "json": 0.2567433714866638
+      },
+      {
+        "json": 0.32190603017807007
+      },
+      {
+        "json": 0.395903080701828
+      },
+      {
+        "json": 0.5109901428222656
+      },
+      {
+        "json": 0.5501294732093811
+      },
+      {
+        "json": 0.2871534824371338
+      },
+      {
+        "json": 0.6574395298957825
+      },
+      {
+        "json": 0.662213146686554
+      },
+      {
+        "json": 0.6217799186706543
+      },
+      {
+        "json": 0.3976845145225525
+      },
+      {
+        "json": 0.24639497697353363
+      },
+      {
+        "json": 0.3833664655685425
+      },
+      {
+        "json": 0.15000291168689728
+      },
+      {
+        "json": 0.17718671262264252
+      },
+      {
+        "json": -0.005841780453920364
+      },
+      {
+        "json": 0.3211270272731781
+      },
+      {
+        "json": 0.2697243094444275
+      },
+      {
+        "json": 0.01982749253511429
+      },
+      {
+        "json": 0.3425585627555847
+      },
+      {
+        "json": 0.20772908627986908
+      },
+      {
+        "json": 0.2757803797721863
+      },
+      {
+        "json": 0.33665862679481506
+      },
+      {
+        "json": 0.2292163372039795
+      },
+      {
+        "json": 0.36965686082839966
+      },
+      {
+        "json": 0.34112757444381714
+      },
+      {
+        "json": 0.31004923582077026
+      },
+      {
+        "json": 0.5388889312744141
+      },
+      {
+        "json": 0.49256739020347595
+      },
+      {
+        "json": 0.5618909001350403
+      },
+      {
+        "json": 0.3978477120399475
+      },
+      {
+        "json": 0.3447791337966919
+      },
+      {
+        "json": 0.5138732194900513
+      },
+      {
+        "json": 0.2304978221654892
+      },
+      {
+        "json": 0.498361736536026
+      },
+      {
+        "json": 0.3213161528110504
+      },
+      {
+        "json": 0.39775365591049194
+      },
+      {
+        "json": 0.10528706759214401
+      },
+      {
+        "json": 0.403536856174469
+      },
+      {
+        "json": 0.5285886526107788
+      },
+      {
+        "json": 0.5743317008018494
+      },
+      {
+        "json": 0.33071815967559814
+      },
+      {
+        "json": 0.5898666381835938
+      },
+      {
+        "json": 0.5419982671737671
+      },
+      {
+        "json": 0.42077094316482544
+      },
+      {
+        "json": 0.43611449003219604
+      },
+      {
+        "json": 0.19647400081157684
+      },
+      {
+        "json": 0.3172069191932678
+      },
+      {
+        "json": 0.2315526306629181
+      },
+      {
+        "json": 0.20108777284622192
+      },
+      {
+        "json": 0.008339115418493748
+      },
+      {
+        "json": 0.31533852219581604
+      },
+      {
+        "json": 0.3071327209472656
+      },
+      {
+        "json": 0.10843602567911148
+      },
+      {
+        "json": 0.4035649299621582
+      },
+      {
+        "json": 0.2857426702976227
+      },
+      {
+        "json": 0.1510515809059143
+      },
+      {
+        "json": 0.2845696806907654
+      },
+      {
+        "json": 0.25997254252433777
+      },
+      {
+        "json": 0.35370203852653503
+      },
+      {
+        "json": 0.2968383729457855
+      },
+      {
+        "json": 0.32857462763786316
+      },
+      {
+        "json": 0.4578970670700073
+      },
+      {
+        "json": 0.406037837266922
+      },
+      {
+        "json": 0.504417896270752
+      },
+      {
+        "json": 0.3789557218551636
+      },
+      {
+        "json": 0.3250100910663605
+      },
+      {
+        "json": 0.4485809803009033
+      },
+      {
+        "json": 0.2837565839290619
+      },
+      {
+        "json": 0.4523247480392456
+      },
+      {
+        "json": 0.3971542418003082
+      },
+      {
+        "json": 0.3368287682533264
+      },
+      {
+        "json": 0.19903859496116638
+      },
+      {
+        "json": 0.2321656346321106
+      },
+      {
+        "json": 0.32919541001319885
+      },
+      {
+        "json": 0.4202795922756195
+      },
+      {
+        "json": 0.20565341413021088
+      },
+      {
+        "json": 0.44107338786125183
+      },
+      {
+        "json": 0.2927108108997345
+      },
+      {
+        "json": 0.44793927669525146
+      },
+      {
+        "json": 0.39767616987228394
+      },
+      {
+        "json": 0.056007690727710724
+      },
+      {
+        "json": 0.15228645503520966
+      },
+      {
+        "json": 0.4082515835762024
+      },
+      {
+        "json": 0.27941104769706726
+      },
+      {
+        "json": 0.12383066862821579
+      },
+      {
+        "json": 0.4190541207790375
+      },
+      {
+        "json": 0.33115899562835693
+      },
+      {
+        "json": 0.09814164787530899
+      },
+      {
+        "json": 0.3072734773159027
+      },
+      {
+        "json": 0.2656703293323517
+      },
+      {
+        "json": 0.17880359292030334
+      },
+      {
+        "json": 0.17209474742412567
+      },
+      {
+        "json": 0.13299448788166046
+      },
+      {
+        "json": 0.25738632678985596
+      },
+      {
+        "json": 0.23658931255340576
+      },
+      {
+        "json": 0.23450779914855957
+      },
+      {
+        "json": 0.5309138298034668
+      },
+      {
+        "json": 0.4480075538158417
+      },
+      {
+        "json": 0.3632827699184418
+      },
+      {
+        "json": 0.2445712387561798
+      },
+      {
+        "json": 0.19107328355312347
+      },
+      {
+        "json": 0.34997284412384033
+      },
+      {
+        "json": 0.2732742726802826
+      },
+      {
+        "json": 0.5619957447052002
+      },
+      {
+        "json": 0.3756508231163025
+      },
+      {
+        "json": 0.6072877645492554
+      },
+      {
+        "json": 0.41642969846725464
+      }
+    ],
+    "AI Agent2": [
+      {
+        "json": {
+          "output": "# PPTAGENT: Edit-Based Presentation Generation\n\n## Introduction to PPTAGENT\n- Two-stage, edit-based approach for generating presentations from documents\n- Inspired by human workflows (reference and refine rather than create from scratch)\n- Addresses limitations of existing methods (focus on content, neglect visual/structural aspects)\n\n![](/data/files/demo1/images/b89d2ab376fb54bd1b3220aadcd76e1896db2960a8e37f90cdc554fc4c9040fc.jpg)\n\n## Key Challenges in Automated Presentation Generation\n- LLMs struggle with slide layout complexity and modal variations\n- PowerPoint's XML format is verbose and redundant\n- Need to balance content quality, visual appeal, and structural coherence\n\n## PPTAGENT Methodology\n**Stage I: Presentation Analysis**\n- Clusters slides and extracts content schemas\n- Identifies structural vs. content slides\n- Uses MLLMs to analyze layout patterns\n\n**Stage II: Generation**\n- Edit-based approach with HTML-rendered representations\n- Self-correction mechanism for iterative refinement\n- Generates executable actions to modify reference slides\n\n![](/data/files/demo1/images/eddf9c3b1d42ee5871ba22c37ce50eb4fe1cae26748d0b3620d3ac39dfa0d520.jpg)\n\n## PPTEVAL Evaluation Framework\n- Comprehensive assessment across three dimensions:\n  - **Content**: Text quality, image relevance\n  - **Design**: Color, layout, visual elements\n  - **Coherence**: Logical structure, flow\n- Uses MLLM-as-a-judge paradigm with 1-5 scoring\n\n![](/data/files/demo1/images/e4dace8403e46eafd63c619bffc396becf4ba8a9a3a344c74248fdf9396f0776.jpg)\n\n## Key Contributions\n1. PPTAGENT framework for edit-based presentation generation\n2. PPTEVAL comprehensive evaluation framework\n3. Release of codebases and Zenodo10K dataset\n\n## Experimental Results\n- Outperforms baselines (DocPres, KCTV) across all dimensions\n- Average score of 3.67 across evaluation metrics\n- Significant improvements:\n  - Design (+40.9% vs DocPres, +13.2% vs KCTV)\n  - Content (+12.1% vs DocPres, +28.6% vs KCTV)\n  - Coherence (+25.5% vs DocPres, +36.6% vs KCTV)\n\n![](/data/files/demo1/images/c900e2f93bc7fae796e0a7f67ce59193c2f9577537205fb4469e042e960b4d96.jpg)\n\n## Ablation Study Findings\n- HTML-based representation critical (success rate drops to 74.6% without CodeRender)\n- Outline and structure essential for coherence (scores drop from 4.48 to ~3.4 without them)\n- Slide schema important (success rate drops to 78.8% without it)\n\n## Zenodo10K Dataset\n- 10,448 presentations from Zenodo under clear licenses\n- Covers 5 domains: Culture, Education, Science, Society, Tech\n- Includes preprocessing details and sampling criteria\n\n## Model Performance\n- GPT-4o achieves highest scores (97.8% SR, 4.39 Coherence)\n- Qwen2.5 shows strong performance (95.0% SR, 3.51 Avg)\n- Open-source models demonstrate potential as presentation agents\n\n![](/data/files/demo1/images/b0f795521ba556ca534dd1977b0d67a5284fc6e53c42813ef03ae8d33f97934a.jpg)\n\n## Limitations and Future Work\n- Occasional generation failures despite high success rates\n- Output quality depends on reference presentations\n- Layout optimization needs improvement\n- Future directions:\n  - Improve robustness\n  - Reduce reference dependency\n  - Better visual information integration\n\n## Conclusion\n- PPTAGENT introduces novel edit-based paradigm for presentation generation\n- PPTEVAL provides reliable evaluation framework\n- Significant improvements over existing methods\n- Opens new possibilities for automated presentation creation\n\n![](/data/files/demo1/images/9921599d884440b4d7a8a20a0f7fabc20cb347bdc078d90d1632830a48fbfcc8.jpg)"
+        }
+      }
+    ],
+    "AI Agent5": [
+      {
+        "json": {
+          "output": "---\ncss: custom.css\ntheme: seriph\nbackground: https://cover.sli.dev\ntitle: PPTAGENT Presentation\ninfo: |\n  ## Edit-Based Presentation Generation\n  Advanced framework for automated slide creation\nclass: text-center\ntransition: slide-left\nmdc: true\n---\n\n# PPTAGENT: Edit-Based Presentation Generation\n\n<div class=\"abs-br m-6 text-xl\">\n  <button @click=\"$slidev.nav.openInEditor()\" class=\"slidev-icon-btn\">\n    <carbon:edit />\n  </button>\n</div>\n\n<style>\nh1 {\n  background-color: #2B90B6;\n  background-image: linear-gradient(45deg, #4EC5D4 10%, #146b8c 20%);\n  background-size: 100%;\n  -webkit-background-clip: text;\n  -moz-background-clip: text;\n  -webkit-text-fill-color: transparent;\n  -moz-text-fill-color: transparent;\n}\n</style>\n\n---\ntransition: fade-out\n---\n\n# Introduction to PPTAGENT\n\n<div grid=\"~ cols-2 gap-4\">\n<div>\n\n- Two-stage, edit-based approach for generating presentations from documents\n- Inspired by human workflows (reference and refine rather than create from scratch)\n- Addresses limitations of existing methods (focus on content, neglect visual/structural aspects)\n\n</div>\n<div>\n\n![](/data/files/demo1/images/b89d2ab376fb54bd1b3220aadcd76e1896db2960a8e37f90cdc554fc4c9040fc.jpg)\n\n</div>\n</div>\n\n---\ntransition: slide-up\nlevel: 2\n---\n\n# Key Challenges in Automated Presentation Generation\n\n- LLMs struggle with slide layout complexity and modal variations\n- PowerPoint's XML format is verbose and redundant\n- Need to balance content quality, visual appeal, and structural coherence\n\n<v-click>\n\n<div class=\"text-sm opacity-75 mt-4\">\nThese challenges motivated our edit-based approach\n</div>\n\n</v-click>\n\n---\nlayout: two-cols\n---\n\n# PPTAGENT Methodology\n\n**Stage I: Presentation Analysis**\n- Clusters slides and extracts content schemas\n- Identifies structural vs. content slides\n- Uses MLLMs to analyze layout patterns\n\n**Stage II: Generation**\n- Edit-based approach with HTML-rendered representations\n- Self-correction mechanism for iterative refinement\n- Generates executable actions to modify reference slides\n\n::right::\n\n![](/data/files/demo1/images/eddf9c3b1d42ee5871ba22c37ce50eb4fe1cae26748d0b3620d3ac39dfa0d520.jpg)\n\n---\nlayout: image-right\nimage: /data/files/demo1/images/e4dace8403e46eafd63c619bffc396becf4ba8a9a3a344c74248fdf9396f0776.jpg\n---\n\n# PPTEVAL Evaluation Framework\n\n- Comprehensive assessment across three dimensions:\n  - **Content**: Text quality, image relevance\n  - **Design**: Color, layout, visual elements\n  - **Coherence**: Logical structure, flow\n- Uses MLLM-as-a-judge paradigm with 1-5 scoring\n\n---\nlevel: 2\n---\n\n# Key Contributions\n\n1. PPTAGENT framework for edit-based presentation generation\n2. PPTEVAL comprehensive evaluation framework\n3. Release of codebases and Zenodo10K dataset\n\n<div v-click class=\"mt-8\">\n\n```mermaid\ngraph TD\n    A[Contributions] --> B[Framework]\n    A --> C[Evaluation]\n    A --> D[Dataset]\n```\n\n</div>\n\n---\nlayout: two-cols\n---\n\n# Experimental Results\n\n- Outperforms baselines (DocPres, KCTV) across all dimensions\n- Average score of 3.67 across evaluation metrics\n- Significant improvements:\n  - Design (+40.9% vs DocPres, +13.2% vs KCTV)\n  - Content (+12.1% vs DocPres, +28.6% vs KCTV)\n  - Coherence (+25.5% vs DocPres, +36.6% vs KCTV)\n\n::right::\n\n![](/data/files/demo1/images/c900e2f93bc7fae796e0a7f67ce59193c2f9577537205fb4469e042e960b4d96.jpg)\n\n---\nclass: px-20\n---\n\n# Ablation Study Findings\n\n<div grid=\"~ cols-2 gap-4\">\n<div>\n\n- HTML-based representation critical (success rate drops to 74.6% without CodeRender)\n- Outline and structure essential for coherence (scores drop from 4.48 to ~3.4 without them)\n- Slide schema important (success rate drops to 78.8% without it)\n\n</div>\n<div>\n\n```mermaid\npie\n    title Success Rate Impact\n    \"With HTML\" : 95.2\n    \"Without HTML\" : 74.6\n```\n\n</div>\n</div>\n\n---\ntransition: slide-up\n---\n\n# Zenodo10K Dataset\n\n- 10,448 presentations from Zenodo under clear licenses\n- Covers 5 domains: Culture, Education, Science, Society, Tech\n- Includes preprocessing details and sampling criteria\n\n<v-click>\n\n<div class=\"mt-6\">\n\n```mermaid\npie\n    title Dataset Distribution\n    \"Science\" : 35\n    \"Tech\" : 25\n    \"Education\" : 20\n    \"Society\" : 15\n    \"Culture\" : 5\n```\n\n</div>\n\n</v-click>\n\n---\nlayout: image-right\nimage: /data/files/demo1/images/b0f795521ba556ca534dd1977b0d67a5284fc6e53c42813ef03ae8d33f97934a.jpg\n---\n\n# Model Performance\n\n- GPT-4o achieves highest scores (97.8% SR, 4.39 Coherence)\n- Qwen2.5 shows strong performance (95.0% SR, 3.51 Avg)\n- Open-source models demonstrate potential as presentation agents\n\n---\nlevel: 2\n---\n\n# Limitations and Future Work\n\n- Occasional generation failures despite high success rates\n- Output quality depends on reference presentations\n- Layout optimization needs improvement\n\n**Future directions:**\n- Improve robustness\n- Reduce reference dependency\n- Better visual information integration\n\n---\nlayout: center\nclass: text-center\n---\n\n# Conclusion\n\n- PPTAGENT introduces novel edit-based paradigm for presentation generation\n- PPTEVAL provides reliable evaluation framework\n- Significant improvements over existing methods\n- Opens new possibilities for automated presentation creation\n\n![](/data/files/demo1/images/9921599d884440b4d7a8a20a0f7fabc20cb347bdc078d90d1632830a48fbfcc8.jpg)"
+        }
+      }
+    ],
+    "Concurrency": [
+      {
+        "json": {
+          "content": "1. PPTAGENT is a two-stage, edit-based approach for generating presentations from documents, inspired by human workflows.  \n2. It first analyzes reference presentations to extract slide-level functional types and content schemas, then drafts an outline and iteratively generates editing actions.  \n3. PPTEVAL is introduced as an evaluation framework to assess presentations across three dimensions: Content, Design, and Coherence.  \n4. PPTAGENT significantly outperforms existing automatic presentation generation methods in all three evaluation dimensions.  \n5. The code and data for PPTAGENT are publicly available on GitHub.",
+          "success": true
+        }
+      },
+      {
+        "json": {
+          "content": "1. Presentations are effective for engaging audiences but require advanced skills to create high-quality content.  \n2. There is increasing interest in automating presentation generation using LLMs and MLLMs.  \n3. Existing methods follow a text-to-slides approach, often resulting in text-heavy and unengaging presentations.  \n4. Human workflows involve referencing exemplary slides and summarizing key content, inspiring the PPTAGENT approach.  \n5. PPTAGENT breaks slide generation into two phases: selecting reference slides and step-by-step editing.  \n6. Implementing an edit-based approach for presentation generation is challenging.",
+          "success": true
+        }
+      },
+      {
+        "json": {
+          "content": "1. LLMs struggle to reference slides due to presentation layout and modal complexity, requiring better understanding of structure and content patterns.  \n2. PowerPoint's XML format is verbose and redundant, making it hard for LLMs to perform robust editing operations.  \n3. PPTAGENT operates in two stages: Presentation Analysis (clustering slides and extracting content schemas) and Presentation Generation (creating new presentations with self-correction).  \n4. Stage I analyzes reference presentations to extract slide types and content schemas for better reference selection and generation.  \n5. Stage II uses edit APIs with HTML-rendered representation to simplify slide modifications via code interaction.  \n6. A self-correction mechanism allows LLMs to iteratively refine editing actions based on feedback for robust generation.  \n7. PPTAGENT clusters reference slides into categories (e.g., opening slides) and selects appropriate references for new slides.  \n8. Editing actions (e.g., replace_span) are generated to modify reference slides for new content.",
+          "success": true
+        }
+      },
+      {
+        "json": {
+          "content": "1. Proposed PPTEVAL framework evaluates presentations across Content, Design, and Coherence dimensions using MLLM-as-a-judge paradigm.  \n2. Human evaluations confirm PPTEVAL's reliability and effectiveness.  \n3. PPTAGENT generates high-quality presentations with average score of 3.67 across PPTEVAL dimensions.  \n4. PPTAGENT introduces edit-based presentation generation guided by reference presentations.  \n5. PPTEVAL provides comprehensive evaluation framework for presentation quality.  \n6. Released PPTAGENT and PPTEVAL codebases with Zenodo10K dataset to support research.  \n7. PPTAGENT operates in two stages: reference analysis (clustering/schema extraction) and iterative edit-based generation.  \n8. Conventional presentation generation method contrasts with PPTAGENT's edit-based approach.",
+          "success": true
+        }
+      },
+      {
+        "json": {
+          "content": "1. The input content generates slide elements with defined types, content, and styling attributes.  \n2. Conventional slide generation requires manual styling, posing challenges for automation.  \n3. PPTAGENT edits reference slides by generating executable actions, preserving layouts and styles.  \n4. Each action corresponds to executable code, derived from input content and a reference slide.  \n5. Presentation analysis involves categorizing slides by structure and layout via clustering.  \n6. Content schemas are extracted to describe slide element organization within clusters.  \n7. Slides are classified as structural (organizational) or content-based (informational).  \n8. LLMs segment presentations, analyze structural slides, and label their roles for grouping.",
+          "success": true
+        }
+      },
+      {
+        "json": {
+          "content": "1. Convert content slides into images and use hierarchical clustering to group similar slides.  \n2. Analyze clustered slide images with MLLMs to identify layout patterns.  \n3. Define an extraction framework for slide content schemas, including category, description, and content.  \n4. Example schema includes elements like title, date, and image with structured representations.  \n5. PPTAGENT generates an outline specifying reference slides and relevant content for new slides.  \n6. Use LLM to create a structured outline with entries for each new slide, referencing functional descriptions.  \n7. Iteratively generate slides by incorporating textual content and image captions from input documents.",
+          "success": true
+        }
+      },
+      {
+        "json": {
+          "content": "1. The new slide maintains the reference slide's layout, ensuring content consistency and structural clarity.  \n2. Edit-based APIs are designed for LLMs to modify reference slides, supporting editing, removing, and duplicating elements.  \n3. Presentations' complex XML format is rendered into HTML for easier understanding and precise editing.  \n4. HTML-based format combined with edit-based APIs allows LLMs to make precise content modifications.  \n5. A self-correction mechanism is implemented using a REPL environment to enhance editing robustness.  \n6. Failed editing actions trigger feedback, helping LLMs refine actions iteratively until success or retry limit.  \n7. PPTEVAL is introduced as a framework for evaluating presentation quality from multiple dimensions without references.",
+          "success": true
+        }
+      },
+      {
+        "json": {
+          "content": "1. The framework uses a 1-to-5 numeric scale and detailed rationales for assessment.  \n2. It evaluates presentations based on three key dimensions: content, design, and coherence.  \n3. Content assessment focuses on concise, grammatically sound text with relevant images.  \n4. Design evaluation considers harmonious colors, proper layout, and appealing visual elements.  \n5. Coherence measures progressive structure and inclusion of essential background information.  \n6. Existing datasets have issues with semantic information loss and lack diversity.  \n7. Current datasets mainly store presentations in PDF or JSON formats, limiting structural and styling details.  \n8. Most available datasets are restricted to academic presentations in artificial intelligence.",
+          "success": true
+        }
+      },
+      {
+        "json": {
+          "content": "1. Introduced Zenodo10K, a new dataset with 10,448 presentations from Zenodo, available for research.  \n2. Sampled 50 presentations and 50 documents from five domains as reference and input materials.  \n3. Dataset sampling criteria and preprocessing details are in Appendix A.  \n4. Table 2 provides dataset statistics, including characters, figures, and pages per domain.  \n5. Domains covered: Culture, Education, Science, Society, Tech, with varying metrics.  \n6. PPTAGENT uses three models: GPT-4o, Qwen2.5-72BInstruct, and Qwen2-VL-72B-Instruct.  \n7. Models are categorized by their handling of textual or visual modalities.",
+          "success": true
+        }
+      },
+      {
+        "json": {
+          "content": "1. Configurations are defined as combinations of a language model (LM) and a vision model (VM).  \n2. Experiment involves 5 domains, each with 10 input documents and 10 reference presentations, totaling 500 tasks per configuration.  \n3. Each slide generation allows up to two self-correction iterations.  \n4. Text and image embeddings are computed using Chen et al. (2024b) and Wu et al. (2020) respectively.  \n5. Open-source LLMs are deployed using VLLM framework on NVIDIA A100 GPUs.  \n6. Total computational cost is approximately 500 GPU hours.  \n7. Baseline methods include DocPres (rule-based) and KCTV (template-based).  \n8. Baselines generate 50 presentations (5 domains × 10 input documents) without reference presentations.  \n9. Baselines do not use vision models and exclude FID metric.  \n10. Evaluation metrics include Success Rate (SR) for robustness.  \n11. For PPTAGENT, success means generating all slides without errors after self-correction.  \n12. For KCTV, success is determined by successful LaTeX file compilation.",
+          "success": true
+        }
+      },
+      {
+        "json": {
+          "content": "1. DocPres is excluded from evaluation for being rule-based.\n2. Perplexity (PPL) measures text fluency using Llama-3-8B, with lower scores indicating better fluency.\n3. Rouge-L evaluates textual similarity via longest common subsequence, reporting F1 scores.\n4. FID assesses presentation similarity in feature space using a 64-dimensional vector.\n5. PPTEVAL uses GPT-4o to evaluate presentation quality in content, design, and coherence.\n6. PPTAGENT significantly outperforms baselines in all PPTEVAL dimensions.\n7. Compared to DocPres, PPTAGENT improves design by 40.9% and content by 12.1%.\n8. Against KCTV, PPTAGENT enhances design by 13.2% and content by 28.6%.\n9. The edit-based paradigm of PPTAGENT proves highly effective.",
+          "success": true
+        }
+      },
+      {
+        "json": {
+          "content": "1. PPTAGENT significantly improves coherence in presentation generation (25.5% for DocPres, 36.6% for KCTV).  \n2. The enhancement is due to PPTAGENT's thorough analysis of slide structural roles.  \n3. Performance metrics include Success Rate (SR), Perplexity (PPL), Rouge-L, FID, and PPTEval.  \n4. PPTAGENT outperforms DocPres and KCTV in multiple metrics.  \n5. GPT-40LM and Qwen2.5Lm configurations show varying performance across methods.  \n6. PPTAGENT achieves higher average scores in Content, Design, and Coherence.  \n7. Rule-based (DocPres) and template-based (KCTV) methods lag behind PPTAGENT in overall performance.  \n8. GPT-40LM with GPT-40vM in PPTAGENT yields the best results (97.8% SR, 4.39 Coherence).  \n9. Qwen2-VLLm configurations show lower success rates but maintain competitive coherence scores.  \n10. PPTAGENT demonstrates robustness across different language and vision model combinations.",
+          "success": true
+        }
+      },
+      {
+        "json": {
+          "content": "1. PPTAGENT achieves 95% success rate with Qwen2.5_LM + Qwen2-VL configuration.\n2. Removing Outline reduces success rate to 91% and coherence score drops to 3.36.\n3. Without Schema, success rate drops to 78.8% and content score decreases to 3.08.\n4. Excluding Structure lowers success rate to 92.2% and coherence score to 3.45.\n5. Without CodeRender, success rate falls to 74.6% but maintains high coherence (4.38).\n6. PPTAGENT shows significant improvement over KCTV (97.8% vs 88.0% success rate).\n7. PPTEVAL outperforms traditional metrics like PPL and ROUGE-L in evaluation consistency.\n8. KCTV has high ROUGE-L (16.76) but low content score (2.55), showing metric inconsistency.\n9. PPTAGENT demonstrates opposite trend with ROUGE-L (14.25) and higher content score (3.28).",
+          "success": true
+        }
+      },
+      {
+        "json": {
+          "content": "1. ROUGE score focuses too much on text matching, limiting presentation expressiveness.  \n2. PPTEVAL improves evaluation by combining reference-free design assessment and presentation coherence analysis.  \n3. Ablation studies tested four settings: random slide reference, no structure, alternative slide representation, and no content schema.  \n4. HTML-based representation reduces interaction complexity, boosting success rates.  \n5. Presentation analysis (outline, structure, schema) is critical for coherence and success rate.  \n6. Case studies compare PPTAGENT, DocPres, and KCTV across Content, Design, and Coherence.  \n7. PPTEVAL provides a comprehensive evaluation framework for presentation quality.",
+          "success": true
+        }
+      },
+      {
+        "json": {
+          "content": "1. PPTAGENT shows varied performance under different reference presentations, labeled as PPTAGENT (a) and PPTAGENT (b).  \n2. Baseline methods (rule-based or template-based) have limited diversity, with scores mostly at levels 2 and 3.  \n3. PPTAGENT has a more dispersed score distribution, with over 80% of presentations scoring 3 or higher.  \n4. PPTAGENT excels in coherence, with over 80% of presentations scoring above 4 due to its structural slide consideration.  \n5. PPTAGENT outperforms in presentation quality, featuring contextually appropriate visuals and well-structured slides.  \n6. Baseline methods (DocPres and KCTV) produce text-heavy slides with limited visual diversity.  \n7. GPT-4o requires fewer self-correction iterations than Qwen2.5, but Qwen2.5 has fewer initial errors.",
+          "success": true
+        }
+      },
+      {
+        "json": {
+          "content": "1. Qwen2-VL has more frequent errors and weaker self-correction due to multimodal post-training.  \n2. All three models corrected over half their errors, showing the iterative self-correction mechanism works.  \n3. Assessing LLM-human evaluation correlation is crucial, as LLMs may not suffice for complex tasks.  \n4. PPTEVAL's 0.71 Pearson correlation with human ratings outperforms other evaluation methods.  \n5. Current metrics like PPL, ROUGEL, and FID are ineffective for presentation evaluation.  \n6. PPL measures text fluency but fails on slide content due to its fragmented nature.  \n7. ROUGEL and FID assess similarity but not quality, as high reference conformity ≠ effectiveness.",
+          "success": true
+        }
+      },
+      {
+        "json": {
+          "content": "1. PPTEVAL is essential for evaluating presentations by assessing both content quality and design effectiveness.  \n2. Automated presentation generation methods are either rule-based or template-based.  \n3. Rule-based methods improve text but often ignore visual engagement in presentations.  \n4. Template-based methods create visually appealing slides but require manual effort, limiting scalability.  \n5. Human and LLM ratings show statistically significant correlations in coherence, content, and design.  \n6. LLMs can act as agents to assist in various tasks, including presentation automation.  \n7. Studies show LLMs can generate executable actions and integrate APIs for presentation tasks.",
+          "success": true
+        }
+      },
+      {
+        "json": {
+          "content": "1. LLMs are widely used as judges due to their strong instruction-following and context perception abilities.  \n2. Research shows feasibility of using MLLMs as judges and proposes multi-dimensional evaluation frameworks.  \n3. LLMs have been used to assess single-slide quality but lack holistic presentation evaluation.  \n4. PPTAGENT introduces a two-stage presentation editing task using LLMs' code understanding and generation abilities.  \n5. PPTEVAL provides quantitative metrics for evaluating presentation quality.  \n6. Experiments show PPTAGENT's superiority across multiple domains.  \n7. The research offers a new paradigm for unsupervised slide generation and insights for future work.  \n8. PPTAGENT has limitations, including occasional generation failures affecting reliability.  \n9. Output quality depends on input reference presentations, potentially leading to suboptimal results.  \n10. PPTAGENT improves layout optimization but sometimes fails to fully utilize visual information, causing design flaws like overlapping elements.",
+          "success": true
+        }
+      },
+      {
+        "json": {
+          "content": "1. Future work should enhance robustness, reduce reference dependency, and better integrate visual information.  \n2. Zenodo10K construction adhered to licensing terms, filtering non-compliant artifacts for ethical compliance.  \n3. Annotation personnel were compensated above minimum wage, ensuring fair labor practices.  \n4. References include studies on slide generation, image vs. text in lectures, and knowledge-centric document views.  \n5. Research covers multimodal LLM assessment and multilingual text embeddings via self-knowledge distillation.",
+          "success": true
+        }
+      },
+      {
+        "json": {
+          "content": "1. Mind2Web: Development of a generalist agent for web interactions.  \n2. Slide:ology: Art and science of crafting effective presentations.  \n3. Resonate: Techniques for creating impactful visual storytelling.  \n4. LLaMA 3: A collection of advanced AI models.  \n5. Zenodo: A research data repository by CERN and OpenAIRE.  \n6. LayoutGPT: AI-driven visual planning and generation using large language models.  \n7. Doc2PPT: Automated slide generation from scientific documents.  \n8. AutoPresent: Structured visual design from scratch using AI.  \n9. Human readability of data files: Importance and challenges.  \n10. Mitigating AI hallucinations via knowledge graph-based retrofitting.  \n11. Unspecified research on AI or related technologies.",
+          "success": true
+        }
+      },
+      {
+        "json": {
+          "content": "1. PPTC benchmark assesses LLMs for PowerPoint task completion.  \n2. GANs trained with two time-scale update rules converge to local Nash equilibrium.  \n3. Survey on LLMs' self-correction capabilities and limitations.  \n4. MT-Eval benchmark evaluates multiturn capabilities of LLMs.  \n5. PagedAttention improves memory management for LLM serving.  \n6. Systematic survey on challenges and limitations in evaluating LLMs.  \n7. AppAgent V2 enhances mobile interaction flexibility with advanced agent capabilities.  \n8. ROUGE package automates summary evaluation.",
+          "success": true
+        }
+      },
+      {
+        "json": {
+          "content": "1. G-eval: NLG evaluation using GPT-4 with better human alignment.  \n2. GNN meets LLM for non-linear document-to-presentation transformation with attribution.  \n3. LLMs harnessed for generating persona-aware slides from documents.  \n4. Slidegen: Abstractive section-based slide generator for scholarly documents.  \n5. D2S: Document-to-slide generation via query-based text summarization.  \n6. Worldcoder: Model-based LLM agent building world models through code and environment interaction.  \n7. Marker.  \n8. Qwen2-VL: Enhancing vision-language model's perception at any resolution.",
+          "success": true
+        }
+      },
+      {
+        "json": {
+          "content": "1. Executable code actions improve LLM agent performance.  \n2. Visual Transformers use token-based image representation for computer vision.  \n3. GPT-4V is a human-aligned evaluator for text-to-3D generation.  \n4. Qwen2.5 technical report details advancements in the model.  \n5. MT-Bench and Chatbot Arena evaluate LLM-as-a-judge performance.  \n6. Data preprocessing selects documents with 12-64 pages and 2,048-20,480 characters.  \n7. Text and visual content are extracted and organized into sections.  \n8. Image captions assist in relevant image selection.  \n9. Duplicate images are removed if cosine similarity exceeds 0.85.  \n10. Slide-level deduplication removes slides with text embedding similarity above 0.8.",
+          "success": true
+        }
+      },
+      {
+        "json": {
+          "content": "1. Four graduate students evaluated 250 presentations (50 real-world, 100 baseline-generated, 100 from our approach) using PPTEVAL framework across three dimensions.  \n2. Evaluators scored slide images individually, then discussed to reach consensus on final scores.  \n3. Inter-rater agreement measured using Fleiss’ Kappa averaged 0.59 (0.61 Content, 0.61 Design, 0.54 Coherence), indicating satisfactory agreement.  \n4. Content dimension assesses information on slides via text and images, focusing on amount, clarity, and visual support.  \n5. High-quality content features clear, impactful text and complementary images for accessibility and engagement.  \n6. MLLMs evaluate slide images as plain text comprehension is insufficient.  \n7. Design dimension evaluates color schemes, visual elements, and overall layout for effective content delivery.  \n8. Effective design uses clear contrast in color schemes to highlight content while maintaining harmony.",
+          "success": true
+        }
+      },
+      {
+        "json": {
+          "content": "1. Visual elements like geometric shapes enhance slide design expressiveness.\n2. Good design follows principles like avoiding overlapping elements and ensuring content clarity.\n3. Coherence in presentations relies on logical structure and contextual information for audience engagement.\n4. Coherence is evaluated by analyzing storyline construction and seamless content flow.\n5. Qwen2.5LM+Qwen2-VLVM performance varies by domain, with failure cases impacting overall effectiveness.\n6. GPT-4o excels across metrics, outperforming Qwen2-VL in linguistic tasks.\n7. Qwen2.5 addresses Qwen2-VL's language limitations, matching GPT-4o's performance.\n8. Open-source LLMs show strong potential as presentation agents.\n9. A hierarchical clustering algorithm groups slides using a 0.65 similarity threshold.",
+          "success": true
+        }
+      },
+      {
+        "json": {
+          "content": "1. Preprocess slides by replacing text with \"a\" and images with solid-color backgrounds.\n2. Compute similarity matrix using cosine similarity based on ViT embeddings.\n3. Figure 9 shows examples from resulting slide clusters.\n4. Algorithm steps for clustering slides based on similarity threshold.\n5. Figure 10 shows a slide in HTML format.\n6. Figure 11 shows an excerpt of XML representation.\n7. Prompts for presentation analysis are in Figures 12, 13, and 14.\n8. Prompts for presentation generation are in Figures 15, 16, and 17.\n9. Prompts for PPTEVAL are in Figures 18 to 23.\n10. Figure 8 shows scoring examples of PPTEVAL.\n11. Figure 9 illustrates slide clusters.",
+          "success": true
+        }
+      },
+      {
+        "json": {
+          "content": "1. Figure 10 shows an example of rendering a slide into HTML format.  \n2. Figure 11 displays the first 60 lines of the XML representation of a presentation slide (out of 1,006 lines).  \n3. Table 6 compares the performance of presentation generation methods: DocPres (rule-based), KCTV (template-based), and PPTAGENT (proposed method).  \n4. Metrics include SR (%), PPL, ROUGE-L, FID, Content, Design, Coherence, and Average scores.  \n5. PPTAGENT with GPT-40LM and GPT-40vM achieves the highest average score (3.54).  \n6. Qwen2.5LM with Qwen2-VLvm also performs well with an average score of 3.48.  \n7. DocPres and KCTV show lower performance compared to PPTAGENT.  \n8. PPTAGENT demonstrates superior coherence and design scores.  \n9. Qwen2-VLm with Qwen2-VLvm has the lowest performance (average score 1.50).  \n10. The table highlights PPTAGENT's effectiveness in presentation generation.",
+          "success": true
+        }
+      },
+      {
+        "json": {
+          "content": "1. Results are evaluated using Success Rate (SR), Perplexity (PPL), Rouge-L, Fr’echet Inception Distance (FID), and SR-weighted PPTEval.  \n2. Structural slides in presentations are categorized as Opening, Transitions, or Ending slides based on their function.  \n3. Opening and Ending slides are typically single slides at the beginning or end of the presentation.  \n4. Transition categories must include multiple slides with partially identical text.  \n5. Non-structural slides are categorized under \"Content.\"  \n6. Functional key groups categorized structural slides with simple, function-based names.  \n7. Content key lists all non-structural slides.  \n8. Figure 12 illustrates the prompt used for clustering structural slides.  \n9. Table 7 presents an ablation analysis of PPTAGENT using Qwen $2.5_{LM}+$ Qwen2-.$VL_{VM}$ configuration with SR-weighted PPTEval scores.  \n10. PPTAGENT achieves a 95% Success Rate (SR) in the evaluation.",
+          "success": true
+        }
+      },
+      {
+        "json": {
+          "content": "1. Data comparison showing performance metrics across different configurations.  \n2. Illustration of prompt usage for inferring layout patterns.  \n3. Performance evaluation results across various domains with success rate, PPL, FID, and PPTEval metrics.  \n4. Prompt instruction for analyzing slide elements and creating structured JSON template schema.  \n5. Role description of an Editor agent specializing in transforming reference materials into structured slide content following schemas.",
+          "success": true
+        }
+      },
+      {
+        "json": {
+          "content": "1. Follow system instructions to create structured PowerPoint outlines with specified slide counts and layouts.\n2. Use JSON format for the final deliverable, ensuring only provided layouts are utilized.\n3. Generate API calls for slide content manipulation based on HTML structure and parent-child relationships.\n4. Process all <span> and <img> elements without leaving unhandled content.\n5. Adjust quantity based on rules: no clone or delete operations if quantity change is zero, only replace content.",
+          "success": true
+        }
+      },
+      {
+        "json": {
+          "content": "1. Assess the slide's information density to determine if it's too lengthy or sparse, leading to excessive white space or lack of visual elements like colors/images.  \n2. Evaluate content clarity and language quality, checking for grammatical errors or unclear expressions in the text.  \n3. Analyze the slide's visual and structural elements for balance, readability, and effectiveness in conveying the intended message.",
+          "success": true
+        }
+      },
+      {
+        "json": {
+          "content": "1. Assess the relevance and presence of visual aids like images or icons in relation to slide content.  \n2. Evaluate visual consistency for readability issues such as border overflow, blur, low contrast, or visual noise.  \n3. Analyze color scheme to identify if the design is monochromatic (black/white) or colorful (including gray).  \n4. Describe the inclusion of supporting visual elements like icons, backgrounds, images, or geometric shapes.  \n5. Summarize slide content and key points concisely for each slide.  \n6. Extract presentation metadata such as author, speaker, and date from opening and closing slides.  \n7. Use a five-point scale for scoring criteria in slide evaluation.  \n8. Provide objective descriptions without additional comments, focusing only on specified dimensions.",
+          "success": true
+        }
+      },
+      {
+        "json": {
+          "content": "1. System evaluates slide content quality based on predefined scoring criteria.  \n2. Five-point scale used: Poor (1), Below Average (2), Average (3), Good (4), Excellent (5).  \n3. Criteria include grammar, structure, focus, organization, visual aids, and image-text relevance.  \n4. Output format is a JSON object with \"reason\" and \"score\" fields.  \n5. Example provided for expected output format.  \n6. Input placeholder {{descr}} indicates user-provided slide description.",
+          "success": true
+        }
+      },
+      {
+        "json": {
+          "content": "1. You are an unbiased judge evaluating slide aesthetics based on visual appeal.  \n2. Scoring uses a five-point scale with specific criteria for each level.  \n3. 1 Point (Poor): Conflicting slide styles hinder readability.  \n4. 2 Points (Fair): Monotonous colors (black/white) ensure readability but lack visual appeal.  \n5. 3 Points (Average): Basic color scheme but lacks visual elements like icons or shapes.  \n6. 4 Points (Good): Harmonious colors with some visual elements, minor design flaws possible.  \n7. 5 Points (Excellent): Harmonious, engaging style with enhanced visual elements like images and shapes.  \n8. You also evaluate presentation coherence on a five-point scale.  \n9. 1 Point (Poor): Inconsistent terminology or weak logical structure.",
+          "success": true
+        }
+      },
+      {
+        "json": {
+          "content": "1. The text discusses a scoring system for evaluating presentations based on clarity, terminology, logical structure, transitions, and background information.  \n2. Scores range from 1 (unclear) to 5 (excellent), with specific criteria for each level.  \n3. A higher score indicates better organization, logical flow, and inclusion of background details.  \n4. The example output format includes a \"reason\" and \"score\" for evaluation.  \n5. Figure 23 references a prompt used in PPTEval to assess coherence.",
+          "success": true
+        }
+      }
+    ]
+  },
+  "connections": {
+    "Convert to File": {
+      "main": [
+        [
+          {
+            "node": "Read/Write Files from Disk1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Edit Fields": {
+      "main": [
+        [
+          {
+            "node": "Convert to File",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Read/Write Files from Disk2": {
+      "main": [
+        [
+          {
+            "node": "Extract from File1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extract from File1": {
+      "main": [
+        [
+          {
+            "node": "Merge",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Merge": {
+      "main": [
+        [
+          {
+            "node": "AI Agent5",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Read/Write Files from Disk3": {
+      "main": [
+        [
+          {
+            "node": "Extract from File2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extract from File2": {
+      "main": [
+        [
+          {
+            "node": "Code1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code1": {
+      "main": [
+        [
+          {
+            "node": "Concurrency",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Aggregate1": {
+      "main": [
+        [
+          {
+            "node": "Merge4",
+            "type": "main",
+            "index": 1
+          },
+          {
+            "node": "Merge5",
+            "type": "main",
+            "index": 1
+          },
+          {
+            "node": "Merge6",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "DeepSeek Chat Model3": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Agent2",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Agent2": {
+      "main": [
+        [
+          {
+            "node": "Merge",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "DeepSeek Chat Model5": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Agent5",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Agent5": {
+      "main": [
+        [
+          {
+            "node": "Edit Fields",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Split Out": {
+      "main": [
+        [
+          {
+            "node": "Read/Write Files from Disk4",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Merge2",
+            "type": "main",
+            "index": 1
+          },
+          {
+            "node": "Merge1",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "ToBase64": {
+      "main": [
+        [
+          {
+            "node": "Merge2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "getImage": {
+      "main": [
+        [
+          {
+            "node": "Split Out",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "ReadMD": {
+      "main": [
+        [
+          {
+            "node": "Extract from File3",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Merge1": {
+      "main": [
+        [
+          {
+            "node": "Filter",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Filter": {
+      "main": [
+        [
+          {
+            "node": "Aggregate2",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Merge4",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extract from File3": {
+      "main": [
+        [
+          {
+            "node": "getImage",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Read/Write Files from Disk4": {
+      "main": [
+        [
+          {
+            "node": "ToBase64",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Merge2": {
+      "main": [
+        [
+          {
+            "node": "Concurrency1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Aggregate2": {
+      "main": [
+        [
+          {
+            "node": "Merge5",
+            "type": "main",
+            "index": 2
+          }
+        ]
+      ]
+    },
+    "Merge4": {
+      "main": [
+        [
+          {
+            "node": "Code2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code2": {
+      "main": [
+        [
+          {
+            "node": "HTTP Request1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HTTP Request1": {
+      "main": [
+        [
+          {
+            "node": "Aggregate3",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Merge5": {
+      "main": [
+        [
+          {
+            "node": "Aggregate4",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Aggregate3": {
+      "main": [
+        [
+          {
+            "node": "Merge5",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Aggregate4": {
+      "main": [
+        [
+          {
+            "node": "Code3",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code3": {
+      "main": [
+        [
+          {
+            "node": "Aggregate5",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Merge6": {
+      "main": [
+        [
+          {
+            "node": "Aggregate6",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Aggregate5": {
+      "main": [
+        [
+          {
+            "node": "Merge6",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Aggregate6": {
+      "main": [
+        [
+          {
+            "node": "Code4",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code4": {
+      "main": [
+        [
+          {
+            "node": "Aggregate7",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Aggregate7": {
+      "main": [
+        [
+          {
+            "node": "AI Agent2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Concurrency1": {
+      "main": [
+        [
+          {
+            "node": "Merge1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Concurrency": {
+      "main": [
+        [
+          {
+            "node": "Aggregate1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "When Executed by Another Workflow": {
+      "main": [
+        [
+          {
+            "node": "Execute Command1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Execute Command1": {
+      "main": [
+        [
+          {
+            "node": "Read/Write Files from Disk2",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Read/Write Files from Disk3",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "ReadMD",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "1a895865-354b-4de8-a4d7-888623366ac9",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "d78d268031f654ff15a7ba81f0603e3a51125823e3c40dfb78e0bc207b997b5a"
+  },
+  "id": "XOq86iVvuwegQ4tE",
+  "tags": []
+}

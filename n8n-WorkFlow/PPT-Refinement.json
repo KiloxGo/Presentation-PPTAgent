@@ -1,0 +1,231 @@
+{
+  "name": "PPT-Refinement",
+  "nodes": [
+    {
+      "parameters": {
+        "inputSource": "passthrough"
+      },
+      "id": "c055762a-8fe7-4141-a639-df2372f30060",
+      "typeVersion": 1.1,
+      "name": "When Executed by Another Workflow",
+      "type": "n8n-nodes-base.executeWorkflowTrigger",
+      "position": [
+        144,
+        352
+      ]
+    },
+    {
+      "parameters": {
+        "command": "cd /d D:/Presentation-PPTAgent/slidev && node split_slidev.cjs ./slides.md ./split-results"
+      },
+      "type": "n8n-nodes-base.executeCommand",
+      "typeVersion": 1,
+      "position": [
+        352,
+        352
+      ],
+      "id": "bf6a37d9-8cfb-4ca1-a37e-dcdfab01e025",
+      "name": "Execute Command"
+    },
+    {
+      "parameters": {
+        "fileSelector": "D:/Presentation-PPTAgent/slidev/split-results/slide_*.md",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.readWriteFile",
+      "typeVersion": 1,
+      "position": [
+        560,
+        352
+      ],
+      "id": "9e4a7501-639a-48dc-a994-2f5e1603fae9",
+      "name": "Read/Write Files from Disk"
+    },
+    {
+      "parameters": {
+        "keepOnlySet": true,
+        "textsWithManipulations": {
+          "textsWithManipulationsValues": [
+            {
+              "dataSources": {
+                "dataSource": [
+                  {
+                    "text": "={{ $('Read/Write Files from Disk').item.json.fileName }}",
+                    "destinationKey": "pagenum"
+                  }
+                ]
+              },
+              "manipulations": {
+                "manipulation": [
+                  {
+                    "action": "substring",
+                    "startPosition": 6,
+                    "end": "length",
+                    "endLength": 2
+                  }
+                ]
+              }
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-text-manipulation.textManipulation",
+      "typeVersion": 1,
+      "position": [
+        1424,
+        352
+      ],
+      "id": "02d45283-35b4-43ed-b04c-ffafb872ace2",
+      "name": "TextManipulation"
+    },
+    {
+      "parameters": {
+        "operation": "text",
+        "destinationKey": "ppt",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.extractFromFile",
+      "typeVersion": 1,
+      "position": [
+        1040,
+        352
+      ],
+      "id": "f19402a1-1d9a-4a0d-9bfc-fddff476f57a",
+      "name": "Extract from File"
+    },
+    {
+      "parameters": {
+        "workflowId": {
+          "__rl": true,
+          "value": "50v1T8Lmbd7JJOn5",
+          "mode": "list",
+          "cachedResultName": "PPT-Refine(第一步）-Layout优化(带检测ppt页面错误）"
+        },
+        "workflowInputs": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "pagenum": "={{ $json.pagenum }}"
+          },
+          "matchingColumns": [
+            "pagenum"
+          ],
+          "schema": [
+            {
+              "id": "pagenum",
+              "displayName": "pagenum",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "number",
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": true,
+          "convertFieldsToString": true
+        },
+        "mode": "each",
+        "options": {
+          "waitForSubWorkflow": false
+        }
+      },
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1.2,
+      "position": [
+        1712,
+        352
+      ],
+      "id": "74a87fbb-92c0-4d9e-9c99-0ab3e84b1e2c",
+      "name": "Execute Workflow",
+      "alwaysOutputData": true
+    },
+    {
+      "parameters": {
+        "content": "## 并行执行激活每一页Slide的Refine",
+        "height": 96,
+        "width": 384
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        112,
+        192
+      ],
+      "typeVersion": 1,
+      "id": "ff7fd406-d32b-4d7d-84a1-65614eeb5c8f",
+      "name": "Sticky Note"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "When Executed by Another Workflow": {
+      "main": [
+        [
+          {
+            "node": "Execute Command",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Execute Command": {
+      "main": [
+        [
+          {
+            "node": "Read/Write Files from Disk",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Read/Write Files from Disk": {
+      "main": [
+        [
+          {
+            "node": "Extract from File",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "TextManipulation": {
+      "main": [
+        [
+          {
+            "node": "Execute Workflow",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extract from File": {
+      "main": [
+        [
+          {
+            "node": "TextManipulation",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Execute Workflow": {
+      "main": [
+        []
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "ae88e216-6727-4b72-9776-448372076578",
+  "meta": {
+    "instanceId": "d78d268031f654ff15a7ba81f0603e3a51125823e3c40dfb78e0bc207b997b5a"
+  },
+  "id": "Xu5Ma9cPwdPQHcHc",
+  "tags": []
+}

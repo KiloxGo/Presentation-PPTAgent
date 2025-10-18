@@ -1,0 +1,88 @@
+{
+  "name": "Get-PageNum",
+  "nodes": [
+    {
+      "parameters": {
+        "operation": "toText",
+        "sourceProperty": "body.pageNumber",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.convertToFile",
+      "typeVersion": 1.1,
+      "position": [
+        976,
+        528
+      ],
+      "id": "ac61f10c-1c16-4907-b4e4-7dcf5248a882",
+      "name": "Convert to File"
+    },
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "fetch-pagenum",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        768,
+        528
+      ],
+      "id": "01b50b19-a3ec-42d8-912f-e7dc08ff1eca",
+      "name": "Webhook1",
+      "webhookId": "ac5a99c1-5900-4942-ad98-966c473b0920"
+    },
+    {
+      "parameters": {
+        "operation": "write",
+        "fileName": "D:/Presentation-PPTAgent/pagenumber.txt",
+        "dataPropertyName": "=data",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.readWriteFile",
+      "typeVersion": 1,
+      "position": [
+        1216,
+        528
+      ],
+      "id": "11e108b7-4414-42ed-b083-c3e7401cb12d",
+      "name": "Read/Write Files from Disk"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Convert to File": {
+      "main": [
+        [
+          {
+            "node": "Read/Write Files from Disk",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Webhook1": {
+      "main": [
+        [
+          {
+            "node": "Convert to File",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "7ec0ceb6-4916-43dd-bfa5-5cd459f20f1f",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "d78d268031f654ff15a7ba81f0603e3a51125823e3c40dfb78e0bc207b997b5a"
+  },
+  "id": "HcYR3MbBWuqKO7ff",
+  "tags": []
+}

@@ -1,0 +1,194 @@
+{
+  "name": "Open-Slidev",
+  "nodes": [
+    {
+      "parameters": {
+        "path": "open-slidev",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        -208,
+        0
+      ],
+      "id": "df0e7850-a969-44cb-ae94-fd0fdced7c24",
+      "name": "Webhook",
+      "webhookId": "b680353b-6b39-4133-8f3f-dcd3025a2979"
+    },
+    {
+      "parameters": {
+        "command": "cd /D D:\\\\Presentation-PPTAgent\\\\slidev &&  python slidev_auto_preview.py"
+      },
+      "type": "n8n-nodes-base.executeCommand",
+      "typeVersion": 1,
+      "position": [
+        832,
+        0
+      ],
+      "id": "e69f1d52-439e-42d5-9850-b9bc7501a563",
+      "name": "Execute Command"
+    },
+    {
+      "parameters": {
+        "mode": "raw",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        208,
+        0
+      ],
+      "id": "9b1f7485-b516-4e32-9a07-3b68a79d4d97",
+      "name": "Edit Fields"
+    },
+    {
+      "parameters": {
+        "operation": "toText",
+        "sourceProperty": "my_field_2",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.convertToFile",
+      "typeVersion": 1.1,
+      "position": [
+        416,
+        0
+      ],
+      "id": "bdd98cb3-b141-42f7-a938-6fc0b9f7d14b",
+      "name": "Convert to File"
+    },
+    {
+      "parameters": {
+        "operation": "write",
+        "fileName": "D:/Presentation-PPTAgent/pagenumber.txt",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.readWriteFile",
+      "typeVersion": 1,
+      "position": [
+        624,
+        0
+      ],
+      "id": "da53a85c-65c7-45a2-8381-8240f63dd8d6",
+      "name": "Read/Write Files from Disk"
+    },
+    {
+      "parameters": {
+        "command": "cd /d D:/Presentation-PPTAgent/slidev && node Merge-md.cjs"
+      },
+      "type": "n8n-nodes-base.executeCommand",
+      "typeVersion": 1,
+      "position": [
+        16,
+        0
+      ],
+      "id": "548fcd93-5fbc-4067-b6d2-9da96e06e953",
+      "name": "Execute Command1",
+      "disabled": true
+    },
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        -80,
+        -224
+      ],
+      "id": "44ace192-ea62-4e17-9c43-80a144df1f0b",
+      "name": "When clicking ‘Execute workflow’"
+    },
+    {
+      "parameters": {
+        "content": "## Test",
+        "height": 240
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        -128,
+        -272
+      ],
+      "typeVersion": 1,
+      "id": "ba30c0f6-26c3-4846-bc60-4cb1c83d3faf",
+      "name": "Sticky Note"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "Execute Command1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Execute Command": {
+      "main": [
+        []
+      ]
+    },
+    "Edit Fields": {
+      "main": [
+        [
+          {
+            "node": "Convert to File",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Convert to File": {
+      "main": [
+        [
+          {
+            "node": "Read/Write Files from Disk",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Read/Write Files from Disk": {
+      "main": [
+        [
+          {
+            "node": "Execute Command",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "When clicking ‘Execute workflow’": {
+      "main": [
+        []
+      ]
+    },
+    "Execute Command1": {
+      "main": [
+        [
+          {
+            "node": "Edit Fields",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "55c7e6c7-1042-4104-bf34-c91bc116e818",
+  "meta": {
+    "instanceId": "d78d268031f654ff15a7ba81f0603e3a51125823e3c40dfb78e0bc207b997b5a"
+  },
+  "id": "g8xKvxGDUQyqiXWR",
+  "tags": []
+}

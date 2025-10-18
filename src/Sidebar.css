@@ -1,0 +1,21 @@
+.sidebar {
+  width: 100px; /* 左侧小组件区域宽度 */
+  background-color: #e0e0e0;
+  padding: 20px;
+  height: 100vh; /* 占满整个页面高度 */
+  position: fixed; /* 固定在左侧 */
+  top: 0;
+  left: 0;
+  display: flex;
+  flex-direction: column; /* 垂直排列小组件 */
+  gap: 20px; /* 小组件之间的间距 */
+  z-index: 1; /* 确保侧边栏在内容下方但高于背景 */
+}
+
+.widget {
+  background-color: #fff;
+  padding: 10px;
+  text-align: center;
+  border-radius: 5px;
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+}

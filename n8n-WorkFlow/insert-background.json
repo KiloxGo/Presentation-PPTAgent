@@ -1,0 +1,697 @@
+{
+  "name": "insert",
+  "nodes": [
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        -1460,
+        -100
+      ],
+      "id": "ae4836c0-35e7-4967-abff-07f48302a9e4",
+      "name": "When clicking ‘Execute workflow’"
+    },
+    {
+      "parameters": {
+        "fileSelector": "E:\\\\prp\\\\insert\\\\originppt.md",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.readWriteFile",
+      "typeVersion": 1,
+      "position": [
+        -1000,
+        -100
+      ],
+      "id": "76918d2c-327e-4e67-b567-9bde243ad3f6",
+      "name": "Read/Write Files from Disk"
+    },
+    {
+      "parameters": {
+        "operation": "text",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.extractFromFile",
+      "typeVersion": 1,
+      "position": [
+        -780,
+        -100
+      ],
+      "id": "2b227673-3655-462e-a320-040bcfaee2b9",
+      "name": "Extract from File",
+      "alwaysOutputData": false
+    },
+    {
+      "parameters": {
+        "jsCode": "// 获取输入数据\nconst inputString = $input.first().json.data;\n\n// 按 --- 分割字符串，但保留分隔符信息\nconst parts = inputString.split(\"---\").filter(part => part.trim() !== \"\");\n\n// 创建分段结果\nlet segments = [];\n\n// 每两个部分组合成一段（格式：---内容---内容）\nfor (let i = 0; i < parts.length; i += 2) {\n  if (i + 1 < parts.length) {\n    // 正常的两部分组合\n    segments.push(`---${parts[i]}---${parts[i+1]}`);\n  } else {\n    // 如果最后只剩一个部分，单独作为一段（前面加---）\n    segments.push(`---${parts[i]}`);\n  }\n}\n\n// 创建新 items\nreturn segments.map(segment => {\n  return {\n    json: {\n      segment: segment,\n      length: segment.length\n    },\n    // 保留原始数据引用\n    pairedItem: $item.index\n  };\n});"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -580,
+        -100
+      ],
+      "id": "3f9cb0c3-b576-4c9e-83df-b83261bd51c2",
+      "name": "Code"
+    },
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.limit",
+      "typeVersion": 1,
+      "position": [
+        -360,
+        -380
+      ],
+      "id": "d2c6330c-3b90-4a2e-afff-5e9772423e65",
+      "name": "Limit"
+    },
+    {
+      "parameters": {
+        "keep": "lastItems"
+      },
+      "type": "n8n-nodes-base.limit",
+      "typeVersion": 1,
+      "position": [
+        -360,
+        200
+      ],
+      "id": "ab78a24e-56ac-439f-a688-66e6c1032312",
+      "name": "Limit1"
+    },
+    {
+      "parameters": {
+        "maxItems": "={{ $input.all().length - 1 }}",
+        "keep": "lastItems"
+      },
+      "type": "n8n-nodes-base.limit",
+      "typeVersion": 1,
+      "position": [
+        -380,
+        -100
+      ],
+      "id": "c3a8b949-e52c-4b0a-9925-e705160ebaf9",
+      "name": "Limit2"
+    },
+    {
+      "parameters": {
+        "maxItems": "={{ $input.all().length - 1 }}"
+      },
+      "type": "n8n-nodes-base.limit",
+      "typeVersion": 1,
+      "position": [
+        -160,
+        -100
+      ],
+      "id": "eaa6f7c4-609c-47cd-a1bb-dc301262505c",
+      "name": "Limit3"
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "={{ $json.segment }}",
+        "options": {
+          "systemMessage": "给你的内容不要改变，只在第二个---的下一行添加这一段代码<div class=\"absolute inset-0 -z-1\" style=\"border: 2px solid red; overflow: hidden;\">\n  <img src=\"/first.jpg\" style=\"width: 100%; height: 100%; object-fit: fill;\">\n</div>"
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 2,
+      "position": [
+        -140,
+        -380
+      ],
+      "id": "cb41eee2-0ace-4493-9569-2aa7c6bf4cc1",
+      "name": "AI Agent"
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatDeepSeek",
+      "typeVersion": 1,
+      "position": [
+        -160,
+        -240
+      ],
+      "id": "36b7da2a-0518-46c2-9eb6-52e379952b87",
+      "name": "DeepSeek Chat Model",
+      "credentials": {
+        "deepSeekApi": {
+          "id": "dsZ5XFb7l9qQE6xK",
+          "name": "DeepSeek account 2"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "={{ $json.segment }}",
+        "options": {
+          "systemMessage": "给你的内容不要改变，只在第二个---的下一行添加这一段代码<div class=\"absolute inset-0 -z-1\" style=\"border: 2px solid red; overflow: hidden;\">\n  <img src=\"/mid.jpg\" style=\"width: 100%; height: 100%; object-fit: fill;\">\n</div>"
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 2,
+      "position": [
+        20,
+        -100
+      ],
+      "id": "7003c14e-6459-44fb-8b06-330bf704964a",
+      "name": "AI Agent1"
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatDeepSeek",
+      "typeVersion": 1,
+      "position": [
+        -20,
+        60
+      ],
+      "id": "61979872-6f0d-4a47-8aa6-28f63641079c",
+      "name": "DeepSeek Chat Model1",
+      "credentials": {
+        "deepSeekApi": {
+          "id": "dsZ5XFb7l9qQE6xK",
+          "name": "DeepSeek account 2"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "={{ $json.segment }}",
+        "options": {
+          "systemMessage": "给你的内容不要改变，只在第二个---的下一行添加这一段代码<div class=\"absolute inset-0 -z-1\" style=\"border: 2px solid red; overflow: hidden;\">\n  <img src=\"/last.jpg\" style=\"width: 100%; height: 100%; object-fit: fill;\">\n</div>"
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 2,
+      "position": [
+        -140,
+        200
+      ],
+      "id": "a6abc205-1167-474f-877c-7a00c86f4a05",
+      "name": "AI Agent2"
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatDeepSeek",
+      "typeVersion": 1,
+      "position": [
+        -160,
+        360
+      ],
+      "id": "91ebec41-26d9-4665-9fe5-62ee898695e6",
+      "name": "DeepSeek Chat Model2",
+      "credentials": {
+        "deepSeekApi": {
+          "id": "dsZ5XFb7l9qQE6xK",
+          "name": "DeepSeek account 2"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "numberInputs": 3
+      },
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3.2,
+      "position": [
+        740,
+        -80
+      ],
+      "id": "b2298996-3d91-4153-8879-ca04be7f9afc",
+      "name": "Merge"
+    },
+    {
+      "parameters": {
+        "fieldsToAggregate": {
+          "fieldToAggregate": [
+            {
+              "fieldToAggregate": "output"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.aggregate",
+      "typeVersion": 1,
+      "position": [
+        1000,
+        -80
+      ],
+      "id": "96f8ab77-4ef3-4b01-a3a6-11442e0d39b8",
+      "name": "Aggregate1"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "6ef62ecf-bc19-4e86-a3fe-a666b1e96796",
+              "name": "output",
+              "value": "={{$json.output}}",
+              "type": "string"
+            }
+          ]
+        },
+        "includeOtherFields": true,
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        1220,
+        -80
+      ],
+      "id": "288b818e-48ce-4d1e-be54-92bd73236e4b",
+      "name": "Edit Fields"
+    },
+    {
+      "parameters": {
+        "operation": "toText",
+        "sourceProperty": "output",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.convertToFile",
+      "typeVersion": 1.1,
+      "position": [
+        1440,
+        -80
+      ],
+      "id": "48132400-4567-49c3-89e8-f05b52641ca4",
+      "name": "Convert to File"
+    },
+    {
+      "parameters": {
+        "operation": "write",
+        "fileName": "E:\\\\prp\\\\insert\\\\insertppt.json",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.readWriteFile",
+      "typeVersion": 1,
+      "position": [
+        1700,
+        -80
+      ],
+      "id": "f71497dc-bed4-4fbe-bb0e-563e05a1a388",
+      "name": "Read/Write Files from Disk1"
+    },
+    {
+      "parameters": {
+        "command": "cd /d E:/prp/insert && python json2md.py"
+      },
+      "type": "n8n-nodes-base.executeCommand",
+      "typeVersion": 1,
+      "position": [
+        1900,
+        -80
+      ],
+      "id": "0465479e-5c0d-491e-af25-c24651e4dbb6",
+      "name": "Execute Command1"
+    },
+    {
+      "parameters": {
+        "command": "cd /d E:/prp/insert && python copy_images.py"
+      },
+      "type": "n8n-nodes-base.executeCommand",
+      "typeVersion": 1,
+      "position": [
+        -1200,
+        -100
+      ],
+      "id": "cdf7648f-fcf3-46e2-aad7-95c8c5a0cc18",
+      "name": "Execute Command"
+    }
+  ],
+  "pinData": {
+    "AI Agent1": [
+      {
+        "json": {
+          "output": "---\ntransition: slide-left\n---\n\n# 研究背景与挑战\n\n<div class=\"absolute inset-0 -z-1\" style=\"border: 2px solid red; overflow: hidden;\">\n  <img src=\"/mid.jpg\" style=\"width: 100%; height: 100%; object-fit: fill; filter: brightness(0.7);\">\n</div>\n<img src=\"E:/pdf_test/output/pptagent/auto/images/24ffd48c91e3abbe9e5c682558268aadf7f4e2c32e6032ae6307d4a84590819a.jpg\" class=\"w-80 mx-auto\">\n\n- 演示文稿因其视觉效果好、能有效吸引和沟通受众而被广泛使用\n- 制作高质量演示文稿需要引人入胜的故事线、精心设计的版面和丰富内容\n- 现有方法主要孤立地改进内容质量，忽略了视觉吸引力和结构连贯性\n- 演示文稿的布局和模态复杂性导致LLM难以直接确定应引用哪些幻灯片"
+        }
+      },
+      {
+        "json": {
+          "output": "---\ntransition: slide-left\n---\n<div class=\"absolute inset-0 -z-1\" style=\"border: 2px solid red; overflow: hidden;\">\n  <img src=\"/mid.jpg\" style=\"width: 100%; height: 100%; object-fit: fill; filter: brightness(0.7);\">\n</div>\n# PPTAGENT框架概述\n\n- 采用两阶段、基于编辑的方法模拟人类工作流程：\n  1. 分析参考演示文稿提取幻灯片级功能类型和内容模式\n  2. 起草大纲并迭代生成编辑动作创建新幻灯片\n- 关键创新：\n  - 幻灯片聚类和模式提取技术\n  - 基于HTML渲染的编辑API\n  - 自校正机制确保生成鲁棒性"
+        }
+      },
+      {
+        "json": {
+          "output": "---\ntransition: slide-left\n---\n\n# 技术实现细节\n\n<div class=\"absolute inset-0 -z-1\" style=\"border: 2px solid red; overflow: hidden;\">\n  <img src=\"/mid.jpg\" style=\"width: 100%; height: 100%; object-fit: fill; filter: brightness(0.7);\">\n</div>\n\n<div grid=\"~ cols-2 gap-4\">\n<div>\n\n- 幻灯片分类：\n  - 结构性幻灯片（开场/过渡/结束页）\n  - 内容幻灯片（要点/图表/示例等）\n- 层次聚类算法分析布局相似性（ViT嵌入+余弦相似度）\n- 编辑API功能：\n  - 删除/替换文本和图片元素\n  - 复制段落\n  - 保持参考幻灯片设计布局\n\n</div>\n<div>\n\n<img src=\"E:/pdf_test/output/pptagent/auto/images/b89d2ab376fb54bd1b3220aadcd76e1896db2960a8e37f90cdc554fc4c9040fc.jpg\" class=\"w-full\">\n\n</div>\n</div>"
+        }
+      },
+      {
+        "json": {
+          "output": "---\ntransition: slide-left\n---\n\n# PPTEVAL评估框架\n\n<div class=\"absolute inset-0 -z-1\" style=\"border: 2px solid red; overflow: hidden;\">\n  <img src=\"/mid.jpg\" style=\"width: 100%; height: 100%; object-fit: fill; filter: brightness(0.7);\">\n</div>\n<img src=\"E:/pdf_test/output/pptagent/auto/images/e4dace8403e46eafd63c619bffc396becf4ba8a9a3a344c74248fdf9396f0776.jpg\" class=\"w-100 mx-auto\">\n\n- 三维度评估标准：\n  1. 内容质量（信息量、语言清晰度）\n  2. 设计效果（色彩、布局、视觉元素）\n  3. 连贯性（逻辑结构、背景信息）\n- 5分制评分标准（1=差，5=优秀）\n- 与人类评估相关性达0.71（皮尔逊系数）"
+        }
+      },
+      {
+        "json": {
+          "output": "---\ntransition: slide-left\n---\n\n# 实验与结果分析\n\n<div class=\"absolute inset-0 -z-1\" style=\"border: 2px solid red; overflow: hidden;\">\n  <img src=\"/mid.jpg\" style=\"width: 100%; height: 100%; object-fit: fill; filter: brightness(0.7);\">\n</div>\n\n<img src=\"E:/pdf_test/output/pptagent/auto/images/1e7ae388d26894acc2be07dda702cf25d64363c36712d292fd6a2f344f348e76.jpg\" class=\"w-80 mx-auto\">\n\n- 数据集：Zenodo10K（10,448份多领域演示文稿）\n- 基线对比：\n  - 基于规则的DocPres\n  - 基于模板的KCTV\n- 主要发现：\n  - 设计维度提升40.9%（vs DocPres）\n  - 连贯性提升36.6%（vs KCTV）\n  - 平均得分3.67（满分5分）"
+        }
+      },
+      {
+        "json": {
+          "output": "---\ntransition: slide-left\n---\n\n# 关键优势与创新\n\n<div class=\"absolute inset-0 -z-1\" style=\"border: 2px solid red; overflow: hidden;\">\n  <img src=\"/mid.jpg\" style=\"width: 100%; height: 100%; object-fit: fill; filter: brightness(0.7);\">\n</div>\n\n<img src=\"E:/pdf_test/output/pptagent/auto/images/546ffc4553bf900f66756866fa2953699477d615860e902b34fab15f26f97361.jpg\" class=\"w-80 mx-auto\">\n\n- 突破传统\"文本到幻灯片\"范式\n- 首次实现无参考条件下的设计评估\n- 开源代码和数据集（PPTAGENT+PPTEVAL+Zenodo10K）\n- 消融实验验证：\n  - 大纲模块对连贯性至关重要（+1.12分）\n  - 代码渲染提升成功率20.4%"
+        }
+      },
+      {
+        "json": {
+          "output": "---\ntransition: slide-left\n---\n<div class=\"absolute inset-0 -z-1\" style=\"border: 2px solid red; overflow: hidden;\">\n  <img src=\"/mid.jpg\" style=\"width: 100%; height: 100%; object-fit: fill; filter: brightness(0.7);\">\n</div>\n\n# 局限性与未来工作\n\n<div grid=\"~ cols-2 gap-4\">\n<div>\n\n- 当前5%的生成失败率\n- 参考演示质量影响输出结果\n- 布局优化空间（元素重叠问题）\n- 未来方向：\n  - 减少参考依赖\n  - 增强视觉信息整合\n  - 提升系统鲁棒性\n\n</div>\n<div>\n\n<img src=\"E:/pdf_test/output/pptagent/auto/images/f9f1b12d537f87d01ad83e245cdfa56031bb39b828549d113e0633ad2897a232.jpg\" class=\"w-full\">\n\n</div>\n</div>"
+        }
+      }
+    ],
+    "AI Agent": [
+      {
+        "json": {
+          "output": "---\ncss: custom.css\ntheme: seriph\nbackground: https://cover.sli.dev\ntitle: PPTAGENT Framework\ninfo: |\n  ## PPTAGENT: Two-Stage Presentation Generation\n  Research presentation on automated slide generation\nclass: text-center\ntransition: slide-left\nmdc: true\n---\n<div class=\"absolute inset-0 -z-1\" style=\"border: 2px solid red; overflow: hidden;\">\n  <img src=\"/first.jpg\" style=\"width: 100%; height: 100%; object-fit: fill; filter: brightness(0.7);\">\n</div>\n\n# PPTAGENT: 基于编辑的两阶段演示文稿生成框架"
+        }
+      }
+    ],
+    "AI Agent2": [
+      {
+        "json": {
+          "output": "---\nlayout: center\nclass: text-center\n---\n\n# 感谢聆听\n\n欢迎提问与讨论\n\n<div class=\"absolute inset-0 -z-1\" style=\"border: 2px solid red; overflow: hidden;\">\n  <img src=\"/last.jpg\" style=\"width: 100%; height: 100%; object-fit: fill; filter: brightness(0.7);\">\n</div>"
+        }
+      }
+    ],
+    "Merge": [
+      {
+        "json": {
+          "output": "---\ncss: custom.css\ntheme: seriph\nbackground: https://cover.sli.dev\ntitle: PPTAGENT Framework\ninfo: |\n  ## PPTAGENT: Two-Stage Presentation Generation\n  Research presentation on automated slide generation\nclass: text-center\ntransition: slide-left\nmdc: true\n---\n<div class=\"absolute inset-0 -z-1\" style=\"border: 2px solid red; overflow: hidden;\">\n  <img src=\"/first.jpg\" style=\"width: 100%; height: 100%; object-fit: fill; filter: brightness(0.7);\">\n</div>\n\n# PPTAGENT: 基于编辑的两阶段演示文稿生成框架"
+        }
+      },
+      {
+        "json": {
+          "output": "---\ntransition: slide-left\n---\n\n# 研究背景与挑战\n\n<div class=\"absolute inset-0 -z-1\" style=\"border: 2px solid red; overflow: hidden;\">\n  <img src=\"/mid.jpg\" style=\"width: 100%; height: 100%; object-fit: fill; filter: brightness(0.7);\">\n</div>\n<img src=\"E:/pdf_test/output/pptagent/auto/images/24ffd48c91e3abbe9e5c682558268aadf7f4e2c32e6032ae6307d4a84590819a.jpg\" class=\"w-80 mx-auto\">\n\n- 演示文稿因其视觉效果好、能有效吸引和沟通受众而被广泛使用\n- 制作高质量演示文稿需要引人入胜的故事线、精心设计的版面和丰富内容\n- 现有方法主要孤立地改进内容质量，忽略了视觉吸引力和结构连贯性\n- 演示文稿的布局和模态复杂性导致LLM难以直接确定应引用哪些幻灯片"
+        }
+      },
+      {
+        "json": {
+          "output": "---\ntransition: slide-left\n---\n<div class=\"absolute inset-0 -z-1\" style=\"border: 2px solid red; overflow: hidden;\">\n  <img src=\"/mid.jpg\" style=\"width: 100%; height: 100%; object-fit: fill; filter: brightness(0.7);\">\n</div>\n# PPTAGENT框架概述\n\n- 采用两阶段、基于编辑的方法模拟人类工作流程：\n  1. 分析参考演示文稿提取幻灯片级功能类型和内容模式\n  2. 起草大纲并迭代生成编辑动作创建新幻灯片\n- 关键创新：\n  - 幻灯片聚类和模式提取技术\n  - 基于HTML渲染的编辑API\n  - 自校正机制确保生成鲁棒性"
+        }
+      },
+      {
+        "json": {
+          "output": "---\ntransition: slide-left\n---\n\n# 技术实现细节\n\n<div class=\"absolute inset-0 -z-1\" style=\"border: 2px solid red; overflow: hidden;\">\n  <img src=\"/mid.jpg\" style=\"width: 100%; height: 100%; object-fit: fill; filter: brightness(0.7);\">\n</div>\n\n<div grid=\"~ cols-2 gap-4\">\n<div>\n\n- 幻灯片分类：\n  - 结构性幻灯片（开场/过渡/结束页）\n  - 内容幻灯片（要点/图表/示例等）\n- 层次聚类算法分析布局相似性（ViT嵌入+余弦相似度）\n- 编辑API功能：\n  - 删除/替换文本和图片元素\n  - 复制段落\n  - 保持参考幻灯片设计布局\n\n</div>\n<div>\n\n<img src=\"E:/pdf_test/output/pptagent/auto/images/b89d2ab376fb54bd1b3220aadcd76e1896db2960a8e37f90cdc554fc4c9040fc.jpg\" class=\"w-full\">\n\n</div>\n</div>"
+        }
+      },
+      {
+        "json": {
+          "output": "---\ntransition: slide-left\n---\n\n# PPTEVAL评估框架\n\n<div class=\"absolute inset-0 -z-1\" style=\"border: 2px solid red; overflow: hidden;\">\n  <img src=\"/mid.jpg\" style=\"width: 100%; height: 100%; object-fit: fill; filter: brightness(0.7);\">\n</div>\n<img src=\"E:/pdf_test/output/pptagent/auto/images/e4dace8403e46eafd63c619bffc396becf4ba8a9a3a344c74248fdf9396f0776.jpg\" class=\"w-100 mx-auto\">\n\n- 三维度评估标准：\n  1. 内容质量（信息量、语言清晰度）\n  2. 设计效果（色彩、布局、视觉元素）\n  3. 连贯性（逻辑结构、背景信息）\n- 5分制评分标准（1=差，5=优秀）\n- 与人类评估相关性达0.71（皮尔逊系数）"
+        }
+      },
+      {
+        "json": {
+          "output": "---\ntransition: slide-left\n---\n\n# 实验与结果分析\n\n<div class=\"absolute inset-0 -z-1\" style=\"border: 2px solid red; overflow: hidden;\">\n  <img src=\"/mid.jpg\" style=\"width: 100%; height: 100%; object-fit: fill; filter: brightness(0.7);\">\n</div>\n\n<img src=\"E:/pdf_test/output/pptagent/auto/images/1e7ae388d26894acc2be07dda702cf25d64363c36712d292fd6a2f344f348e76.jpg\" class=\"w-80 mx-auto\">\n\n- 数据集：Zenodo10K（10,448份多领域演示文稿）\n- 基线对比：\n  - 基于规则的DocPres\n  - 基于模板的KCTV\n- 主要发现：\n  - 设计维度提升40.9%（vs DocPres）\n  - 连贯性提升36.6%（vs KCTV）\n  - 平均得分3.67（满分5分）"
+        }
+      },
+      {
+        "json": {
+          "output": "---\ntransition: slide-left\n---\n\n# 关键优势与创新\n\n<div class=\"absolute inset-0 -z-1\" style=\"border: 2px solid red; overflow: hidden;\">\n  <img src=\"/mid.jpg\" style=\"width: 100%; height: 100%; object-fit: fill; filter: brightness(0.7);\">\n</div>\n\n<img src=\"E:/pdf_test/output/pptagent/auto/images/546ffc4553bf900f66756866fa2953699477d615860e902b34fab15f26f97361.jpg\" class=\"w-80 mx-auto\">\n\n- 突破传统\"文本到幻灯片\"范式\n- 首次实现无参考条件下的设计评估\n- 开源代码和数据集（PPTAGENT+PPTEVAL+Zenodo10K）\n- 消融实验验证：\n  - 大纲模块对连贯性至关重要（+1.12分）\n  - 代码渲染提升成功率20.4%"
+        }
+      },
+      {
+        "json": {
+          "output": "---\ntransition: slide-left\n---\n<div class=\"absolute inset-0 -z-1\" style=\"border: 2px solid red; overflow: hidden;\">\n  <img src=\"/mid.jpg\" style=\"width: 100%; height: 100%; object-fit: fill; filter: brightness(0.7);\">\n</div>\n\n# 局限性与未来工作\n\n<div grid=\"~ cols-2 gap-4\">\n<div>\n\n- 当前5%的生成失败率\n- 参考演示质量影响输出结果\n- 布局优化空间（元素重叠问题）\n- 未来方向：\n  - 减少参考依赖\n  - 增强视觉信息整合\n  - 提升系统鲁棒性\n\n</div>\n<div>\n\n<img src=\"E:/pdf_test/output/pptagent/auto/images/f9f1b12d537f87d01ad83e245cdfa56031bb39b828549d113e0633ad2897a232.jpg\" class=\"w-full\">\n\n</div>\n</div>"
+        }
+      },
+      {
+        "json": {
+          "output": "---\nlayout: center\nclass: text-center\n---\n\n# 感谢聆听\n\n欢迎提问与讨论\n\n<div class=\"absolute inset-0 -z-1\" style=\"border: 2px solid red; overflow: hidden;\">\n  <img src=\"/last.jpg\" style=\"width: 100%; height: 100%; object-fit: fill; filter: brightness(0.7);\">\n</div>"
+        }
+      }
+    ],
+    "Aggregate1": [
+      {
+        "json": {
+          "output": [
+            "---\ncss: custom.css\ntheme: seriph\nbackground: https://cover.sli.dev\ntitle: PPTAGENT Framework\ninfo: |\n  ## PPTAGENT: Two-Stage Presentation Generation\n  Research presentation on automated slide generation\nclass: text-center\ntransition: slide-left\nmdc: true\n---\n<div class=\"absolute inset-0 -z-1\" style=\"border: 2px solid red; overflow: hidden;\">\n  <img src=\"/first.jpg\" style=\"width: 100%; height: 100%; object-fit: fill; filter: brightness(0.7);\">\n</div>\n\n# PPTAGENT: 基于编辑的两阶段演示文稿生成框架",
+            "---\ntransition: slide-left\n---\n\n# 研究背景与挑战\n\n<div class=\"absolute inset-0 -z-1\" style=\"border: 2px solid red; overflow: hidden;\">\n  <img src=\"/mid.jpg\" style=\"width: 100%; height: 100%; object-fit: fill; filter: brightness(0.7);\">\n</div>\n<img src=\"E:/pdf_test/output/pptagent/auto/images/24ffd48c91e3abbe9e5c682558268aadf7f4e2c32e6032ae6307d4a84590819a.jpg\" class=\"w-80 mx-auto\">\n\n- 演示文稿因其视觉效果好、能有效吸引和沟通受众而被广泛使用\n- 制作高质量演示文稿需要引人入胜的故事线、精心设计的版面和丰富内容\n- 现有方法主要孤立地改进内容质量，忽略了视觉吸引力和结构连贯性\n- 演示文稿的布局和模态复杂性导致LLM难以直接确定应引用哪些幻灯片",
+            "---\ntransition: slide-left\n---\n<div class=\"absolute inset-0 -z-1\" style=\"border: 2px solid red; overflow: hidden;\">\n  <img src=\"/mid.jpg\" style=\"width: 100%; height: 100%; object-fit: fill; filter: brightness(0.7);\">\n</div>\n# PPTAGENT框架概述\n\n- 采用两阶段、基于编辑的方法模拟人类工作流程：\n  1. 分析参考演示文稿提取幻灯片级功能类型和内容模式\n  2. 起草大纲并迭代生成编辑动作创建新幻灯片\n- 关键创新：\n  - 幻灯片聚类和模式提取技术\n  - 基于HTML渲染的编辑API\n  - 自校正机制确保生成鲁棒性",
+            "---\ntransition: slide-left\n---\n\n# 技术实现细节\n\n<div class=\"absolute inset-0 -z-1\" style=\"border: 2px solid red; overflow: hidden;\">\n  <img src=\"/mid.jpg\" style=\"width: 100%; height: 100%; object-fit: fill; filter: brightness(0.7);\">\n</div>\n\n<div grid=\"~ cols-2 gap-4\">\n<div>\n\n- 幻灯片分类：\n  - 结构性幻灯片（开场/过渡/结束页）\n  - 内容幻灯片（要点/图表/示例等）\n- 层次聚类算法分析布局相似性（ViT嵌入+余弦相似度）\n- 编辑API功能：\n  - 删除/替换文本和图片元素\n  - 复制段落\n  - 保持参考幻灯片设计布局\n\n</div>\n<div>\n\n<img src=\"E:/pdf_test/output/pptagent/auto/images/b89d2ab376fb54bd1b3220aadcd76e1896db2960a8e37f90cdc554fc4c9040fc.jpg\" class=\"w-full\">\n\n</div>\n</div>",
+            "---\ntransition: slide-left\n---\n\n# PPTEVAL评估框架\n\n<div class=\"absolute inset-0 -z-1\" style=\"border: 2px solid red; overflow: hidden;\">\n  <img src=\"/mid.jpg\" style=\"width: 100%; height: 100%; object-fit: fill; filter: brightness(0.7);\">\n</div>\n<img src=\"E:/pdf_test/output/pptagent/auto/images/e4dace8403e46eafd63c619bffc396becf4ba8a9a3a344c74248fdf9396f0776.jpg\" class=\"w-100 mx-auto\">\n\n- 三维度评估标准：\n  1. 内容质量（信息量、语言清晰度）\n  2. 设计效果（色彩、布局、视觉元素）\n  3. 连贯性（逻辑结构、背景信息）\n- 5分制评分标准（1=差，5=优秀）\n- 与人类评估相关性达0.71（皮尔逊系数）",
+            "---\ntransition: slide-left\n---\n\n# 实验与结果分析\n\n<div class=\"absolute inset-0 -z-1\" style=\"border: 2px solid red; overflow: hidden;\">\n  <img src=\"/mid.jpg\" style=\"width: 100%; height: 100%; object-fit: fill; filter: brightness(0.7);\">\n</div>\n\n<img src=\"E:/pdf_test/output/pptagent/auto/images/1e7ae388d26894acc2be07dda702cf25d64363c36712d292fd6a2f344f348e76.jpg\" class=\"w-80 mx-auto\">\n\n- 数据集：Zenodo10K（10,448份多领域演示文稿）\n- 基线对比：\n  - 基于规则的DocPres\n  - 基于模板的KCTV\n- 主要发现：\n  - 设计维度提升40.9%（vs DocPres）\n  - 连贯性提升36.6%（vs KCTV）\n  - 平均得分3.67（满分5分）",
+            "---\ntransition: slide-left\n---\n\n# 关键优势与创新\n\n<div class=\"absolute inset-0 -z-1\" style=\"border: 2px solid red; overflow: hidden;\">\n  <img src=\"/mid.jpg\" style=\"width: 100%; height: 100%; object-fit: fill; filter: brightness(0.7);\">\n</div>\n\n<img src=\"E:/pdf_test/output/pptagent/auto/images/546ffc4553bf900f66756866fa2953699477d615860e902b34fab15f26f97361.jpg\" class=\"w-80 mx-auto\">\n\n- 突破传统\"文本到幻灯片\"范式\n- 首次实现无参考条件下的设计评估\n- 开源代码和数据集（PPTAGENT+PPTEVAL+Zenodo10K）\n- 消融实验验证：\n  - 大纲模块对连贯性至关重要（+1.12分）\n  - 代码渲染提升成功率20.4%",
+            "---\ntransition: slide-left\n---\n<div class=\"absolute inset-0 -z-1\" style=\"border: 2px solid red; overflow: hidden;\">\n  <img src=\"/mid.jpg\" style=\"width: 100%; height: 100%; object-fit: fill; filter: brightness(0.7);\">\n</div>\n\n# 局限性与未来工作\n\n<div grid=\"~ cols-2 gap-4\">\n<div>\n\n- 当前5%的生成失败率\n- 参考演示质量影响输出结果\n- 布局优化空间（元素重叠问题）\n- 未来方向：\n  - 减少参考依赖\n  - 增强视觉信息整合\n  - 提升系统鲁棒性\n\n</div>\n<div>\n\n<img src=\"E:/pdf_test/output/pptagent/auto/images/f9f1b12d537f87d01ad83e245cdfa56031bb39b828549d113e0633ad2897a232.jpg\" class=\"w-full\">\n\n</div>\n</div>",
+            "---\nlayout: center\nclass: text-center\n---\n\n# 感谢聆听\n\n欢迎提问与讨论\n\n<div class=\"absolute inset-0 -z-1\" style=\"border: 2px solid red; overflow: hidden;\">\n  <img src=\"/last.jpg\" style=\"width: 100%; height: 100%; object-fit: fill; filter: brightness(0.7);\">\n</div>"
+          ]
+        }
+      }
+    ],
+    "Edit Fields": [
+      {
+        "json": {
+          "output": "[\"---\\ncss: custom.css\\ntheme: seriph\\nbackground: https://cover.sli.dev\\ntitle: PPTAGENT Framework\\ninfo: |\\n  ## PPTAGENT: Two-Stage Presentation Generation\\n  Research presentation on automated slide generation\\nclass: text-center\\ntransition: slide-left\\nmdc: true\\n---\\n<div class=\\\"absolute inset-0 -z-1\\\" style=\\\"border: 2px solid red; overflow: hidden;\\\">\\n  <img src=\\\"/first.jpg\\\" style=\\\"width: 100%; height: 100%; object-fit: fill; filter: brightness(0.7);\\\">\\n</div>\\n\\n# PPTAGENT: 基于编辑的两阶段演示文稿生成框架\",\"---\\ntransition: slide-left\\n---\\n\\n# 研究背景与挑战\\n\\n<div class=\\\"absolute inset-0 -z-1\\\" style=\\\"border: 2px solid red; overflow: hidden;\\\">\\n  <img src=\\\"/mid.jpg\\\" style=\\\"width: 100%; height: 100%; object-fit: fill; filter: brightness(0.7);\\\">\\n</div>\\n<img src=\\\"E:/pdf_test/output/pptagent/auto/images/24ffd48c91e3abbe9e5c682558268aadf7f4e2c32e6032ae6307d4a84590819a.jpg\\\" class=\\\"w-80 mx-auto\\\">\\n\\n- 演示文稿因其视觉效果好、能有效吸引和沟通受众而被广泛使用\\n- 制作高质量演示文稿需要引人入胜的故事线、精心设计的版面和丰富内容\\n- 现有方法主要孤立地改进内容质量，忽略了视觉吸引力和结构连贯性\\n- 演示文稿的布局和模态复杂性导致LLM难以直接确定应引用哪些幻灯片\",\"---\\ntransition: slide-left\\n---\\n<div class=\\\"absolute inset-0 -z-1\\\" style=\\\"border: 2px solid red; overflow: hidden;\\\">\\n  <img src=\\\"/mid.jpg\\\" style=\\\"width: 100%; height: 100%; object-fit: fill; filter: brightness(0.7);\\\">\\n</div>\\n# PPTAGENT框架概述\\n\\n- 采用两阶段、基于编辑的方法模拟人类工作流程：\\n  1. 分析参考演示文稿提取幻灯片级功能类型和内容模式\\n  2. 起草大纲并迭代生成编辑动作创建新幻灯片\\n- 关键创新：\\n  - 幻灯片聚类和模式提取技术\\n  - 基于HTML渲染的编辑API\\n  - 自校正机制确保生成鲁棒性\",\"---\\ntransition: slide-left\\n---\\n\\n# 技术实现细节\\n\\n<div class=\\\"absolute inset-0 -z-1\\\" style=\\\"border: 2px solid red; overflow: hidden;\\\">\\n  <img src=\\\"/mid.jpg\\\" style=\\\"width: 100%; height: 100%; object-fit: fill; filter: brightness(0.7);\\\">\\n</div>\\n\\n<div grid=\\\"~ cols-2 gap-4\\\">\\n<div>\\n\\n- 幻灯片分类：\\n  - 结构性幻灯片（开场/过渡/结束页）\\n  - 内容幻灯片（要点/图表/示例等）\\n- 层次聚类算法分析布局相似性（ViT嵌入+余弦相似度）\\n- 编辑API功能：\\n  - 删除/替换文本和图片元素\\n  - 复制段落\\n  - 保持参考幻灯片设计布局\\n\\n</div>\\n<div>\\n\\n<img src=\\\"E:/pdf_test/output/pptagent/auto/images/b89d2ab376fb54bd1b3220aadcd76e1896db2960a8e37f90cdc554fc4c9040fc.jpg\\\" class=\\\"w-full\\\">\\n\\n</div>\\n</div>\",\"---\\ntransition: slide-left\\n---\\n\\n# PPTEVAL评估框架\\n\\n<div class=\\\"absolute inset-0 -z-1\\\" style=\\\"border: 2px solid red; overflow: hidden;\\\">\\n  <img src=\\\"/mid.jpg\\\" style=\\\"width: 100%; height: 100%; object-fit: fill; filter: brightness(0.7);\\\">\\n</div>\\n<img src=\\\"E:/pdf_test/output/pptagent/auto/images/e4dace8403e46eafd63c619bffc396becf4ba8a9a3a344c74248fdf9396f0776.jpg\\\" class=\\\"w-100 mx-auto\\\">\\n\\n- 三维度评估标准：\\n  1. 内容质量（信息量、语言清晰度）\\n  2. 设计效果（色彩、布局、视觉元素）\\n  3. 连贯性（逻辑结构、背景信息）\\n- 5分制评分标准（1=差，5=优秀）\\n- 与人类评估相关性达0.71（皮尔逊系数）\",\"---\\ntransition: slide-left\\n---\\n\\n# 实验与结果分析\\n\\n<div class=\\\"absolute inset-0 -z-1\\\" style=\\\"border: 2px solid red; overflow: hidden;\\\">\\n  <img src=\\\"/mid.jpg\\\" style=\\\"width: 100%; height: 100%; object-fit: fill; filter: brightness(0.7);\\\">\\n</div>\\n\\n<img src=\\\"E:/pdf_test/output/pptagent/auto/images/1e7ae388d26894acc2be07dda702cf25d64363c36712d292fd6a2f344f348e76.jpg\\\" class=\\\"w-80 mx-auto\\\">\\n\\n- 数据集：Zenodo10K（10,448份多领域演示文稿）\\n- 基线对比：\\n  - 基于规则的DocPres\\n  - 基于模板的KCTV\\n- 主要发现：\\n  - 设计维度提升40.9%（vs DocPres）\\n  - 连贯性提升36.6%（vs KCTV）\\n  - 平均得分3.67（满分5分）\",\"---\\ntransition: slide-left\\n---\\n\\n# 关键优势与创新\\n\\n<div class=\\\"absolute inset-0 -z-1\\\" style=\\\"border: 2px solid red; overflow: hidden;\\\">\\n  <img src=\\\"/mid.jpg\\\" style=\\\"width: 100%; height: 100%; object-fit: fill; filter: brightness(0.7);\\\">\\n</div>\\n\\n<img src=\\\"E:/pdf_test/output/pptagent/auto/images/546ffc4553bf900f66756866fa2953699477d615860e902b34fab15f26f97361.jpg\\\" class=\\\"w-80 mx-auto\\\">\\n\\n- 突破传统\\\"文本到幻灯片\\\"范式\\n- 首次实现无参考条件下的设计评估\\n- 开源代码和数据集（PPTAGENT+PPTEVAL+Zenodo10K）\\n- 消融实验验证：\\n  - 大纲模块对连贯性至关重要（+1.12分）\\n  - 代码渲染提升成功率20.4%\",\"---\\ntransition: slide-left\\n---\\n<div class=\\\"absolute inset-0 -z-1\\\" style=\\\"border: 2px solid red; overflow: hidden;\\\">\\n  <img src=\\\"/mid.jpg\\\" style=\\\"width: 100%; height: 100%; object-fit: fill; filter: brightness(0.7);\\\">\\n</div>\\n\\n# 局限性与未来工作\\n\\n<div grid=\\\"~ cols-2 gap-4\\\">\\n<div>\\n\\n- 当前5%的生成失败率\\n- 参考演示质量影响输出结果\\n- 布局优化空间（元素重叠问题）\\n- 未来方向：\\n  - 减少参考依赖\\n  - 增强视觉信息整合\\n  - 提升系统鲁棒性\\n\\n</div>\\n<div>\\n\\n<img src=\\\"E:/pdf_test/output/pptagent/auto/images/f9f1b12d537f87d01ad83e245cdfa56031bb39b828549d113e0633ad2897a232.jpg\\\" class=\\\"w-full\\\">\\n\\n</div>\\n</div>\",\"---\\nlayout: center\\nclass: text-center\\n---\\n\\n# 感谢聆听\\n\\n欢迎提问与讨论\\n\\n<div class=\\\"absolute inset-0 -z-1\\\" style=\\\"border: 2px solid red; overflow: hidden;\\\">\\n  <img src=\\\"/last.jpg\\\" style=\\\"width: 100%; height: 100%; object-fit: fill; filter: brightness(0.7);\\\">\\n</div>\"]"
+        }
+      }
+    ]
+  },
+  "connections": {
+    "When clicking ‘Execute workflow’": {
+      "main": [
+        [
+          {
+            "node": "Execute Command",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Read/Write Files from Disk": {
+      "main": [
+        [
+          {
+            "node": "Extract from File",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extract from File": {
+      "main": [
+        [
+          {
+            "node": "Code",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code": {
+      "main": [
+        [
+          {
+            "node": "Limit",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Limit1",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Limit2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Limit2": {
+      "main": [
+        [
+          {
+            "node": "Limit3",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Limit": {
+      "main": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "DeepSeek Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Limit3": {
+      "main": [
+        [
+          {
+            "node": "AI Agent1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "DeepSeek Chat Model1": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Agent1",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "DeepSeek Chat Model2": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Agent2",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Limit1": {
+      "main": [
+        [
+          {
+            "node": "AI Agent2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Agent2": {
+      "main": [
+        [
+          {
+            "node": "Merge",
+            "type": "main",
+            "index": 2
+          }
+        ]
+      ]
+    },
+    "AI Agent1": {
+      "main": [
+        [
+          {
+            "node": "Merge",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "AI Agent": {
+      "main": [
+        [
+          {
+            "node": "Merge",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Merge": {
+      "main": [
+        [
+          {
+            "node": "Aggregate1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Aggregate1": {
+      "main": [
+        [
+          {
+            "node": "Edit Fields",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Edit Fields": {
+      "main": [
+        [
+          {
+            "node": "Convert to File",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Convert to File": {
+      "main": [
+        [
+          {
+            "node": "Read/Write Files from Disk1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Read/Write Files from Disk1": {
+      "main": [
+        [
+          {
+            "node": "Execute Command1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Execute Command": {
+      "main": [
+        [
+          {
+            "node": "Read/Write Files from Disk",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "6e007682-666d-47ba-8a55-e834031f2272",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "b67008c1fdeed990e06aca04c7cd57b8265bcbeb202060e08afd636b49c81c1e"
+  },
+  "id": "yIMCChMtnfcAj8za",
+  "tags": []
+}

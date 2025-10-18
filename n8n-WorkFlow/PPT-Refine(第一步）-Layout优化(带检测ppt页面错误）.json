@@ -1,0 +1,724 @@
+{
+  "name": "PPT-Refine(第一步）-Layout优化(带检测ppt页面错误）",
+  "nodes": [
+    {
+      "parameters": {
+        "content": "## 生成评分要用的png与pptx格式\n",
+        "height": 288,
+        "width": 224
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        -3952,
+        192
+      ],
+      "typeVersion": 1,
+      "id": "f3091215-9548-4111-a459-8abf8514368b",
+      "name": "Sticky Note"
+    },
+    {
+      "parameters": {
+        "content": "## 单页评分",
+        "height": 288
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        -3568,
+        352
+      ],
+      "typeVersion": 1,
+      "id": "129bbaef-a78b-4be7-b859-683d26481159",
+      "name": "Sticky Note2"
+    },
+    {
+      "parameters": {
+        "fileSelector": "=D:/Presentation-PPTAgent/slidev/{{ $('When Executed by Another Workflow').item.json.pagenum }}/slide_{{ $('When Executed by Another Workflow').item.json.pagenum }}_eval.json",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.readWriteFile",
+      "typeVersion": 1,
+      "position": [
+        -2864,
+        288
+      ],
+      "id": "b8b3b0c2-2c36-4496-9855-aef46b794555",
+      "name": "Read/Write Files from Disk1"
+    },
+    {
+      "parameters": {
+        "mode": "combine",
+        "combineBy": "combineAll",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3.2,
+      "position": [
+        -2080,
+        64
+      ],
+      "id": "d5928685-7e65-4b66-a066-2309f001094c",
+      "name": "Merge"
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "={{ $json.ppt }}",
+        "options": {
+          "systemMessage": "=你作为专业PPT布局优化师，专注于Slidev场景，需根据以下评分和修改建议优化幻灯片Markdown内容，严格遵循规则：\n\n1. 核心目标：提升布局评分，解决文字重叠、超出画布、排版混乱、空白不协调等问题；禁止更改图片内容及路径；不修改背景图片设置，必须保留类似格式：\n   <div class=\"absolute inset-0 -z-1\" style=\"border: 2px solid red; overflow: hidden;\">\n     <img src=\"D:/Presentation-PPTAgent/slidev/background/mid.jpg\" style=\"width: 100%; height: 100%; object-fit: fill;\">\n   </div>\n保证背景图片覆盖整个页面\n   确保标题及内容文字与背景无冲突。\n\n2. 技术要求：\n  所有内容与图片必须在画布范围内，绝不超出或遮挡；\n分点内容须清晰分隔，合理换行与间距；\n图片路径与内容不能修改，可调图片大小但不得裁剪或替换；\n重点内容应突出显示，标题明显、文本清晰易读，并且禁止给文本添加文本背景；每个<div>语法内或之间禁止空行；\n禁止产生内容重叠、排版错乱、异常留白等问题。\nSlidev布局修改示例：\na、配合md的基础语法，针对md文本修改样式如下：\n<font face=\"宋体\">宋体字</font>(中文全部用宋体字体)\n<font face=\"Times\">WORDS</font>（英文全部用Times的字体）\n<font color=\"red\">红色字体</font>\n<font color=\"#00ff00\">绿色字体</font>\n<font color=\"blue\">蓝色字体</font><font size=\"2\">小号字体</font>\n<font size=\"4\">中号字体</font>\n<font size=\"6\">大号字体</font><font size=\"5\" color=\"purple\" face=\"微软雅黑\">紫色大号微软雅黑</font>\n  记得前后必须加上<div>与</div>，并且针对原来md语法中的相关字体形式须按照html的格式进行修改，同时相应的换行，空格之类布局要保留下来，注意在原来有空行的地方用<br>进行实现,针对文件内有文字内容而评分中说明没有文字信息的要警惕是否是背景和文字颜色一致导致了文字被隐藏的问题，从而修改文字的颜色\nb、图片均用html的格式进行<img>包含，并进行如下方式的大小调整方案：\n  百分比缩放：<img src=https://i-blog.csdnimg.cn/blog_migrate/c6399f8f84b8620b533da4dfb3b17e35.png width=100% />\n  <img src=https://i-blog.csdnimg.cn/blog_migrate/c6399f8f84b8620b533da4dfb3b17e35.png style=\"zoom:50%;\" />\n  绝对长度缩放：<img src=https://i-blog.csdnimg.cn/blog_migrate/c6399f8f84b8620b533da4dfb3b17e35.png width=240 />\n  <img src=https://i-blog.csdnimg.cn/blog_migrate/c6399f8f84b8620b533da4dfb3b17e35.png height=140 />\nc、针对布局提供以下方案（带有theme的封面页，不对布局进行修改）：\n  左右布局：运用slidev的layout：two-col格式，并决定将<img>的表示放在左或者右，示例如下：\n---\nlayout: two-cols\n---\n\n# 左\n\n这会在左边显示\n\n::right::\n\n# 右\n\n这会在右边显示\n  （切记在two-col的布局中不允许出现：：left：：，否则会导致左边的内容不显示）\n  针对用<div>的top，left，right设置要保证左右布局的时候左边内容和右边内容的偏移不一致防止内容重叠\n  上下布局：运用slidev内部的layout：center布局进行实现，自定义将图片放于何处，并根据图片是否放置恰当自行判断\nd、针对带有theme的封面开头页，允许进行内容简化，尽量只预留一行主题以及下面编者/日期\n\n3. 输出要求：\n   - 仅返回优化后的单页幻灯片Markdown内容，无额外说明；\n   - 内容需整合正确的样式、文本、图片，适配Slidev渲染，尽量不留白；\n   - 保留原幻灯片结构（页数、顺序不变），且每页前方的---的元数据尽量保留；\n   - 末尾必须用`<!-- 修改说明： -->`标注改动点（如“调整标题位置至top: 40px；用Grid布局压缩内容间距”）。\n\n评分信息：\n- 布局评分：{{ $json.data.layout.score }}\n- 文本评分：{{ $json.data.text.score }}\n- 布局问题：{{ $json.data.layout.problem }}\n- 布局修改建议：{{ $json.data.layout.modification_direction }}\n- 布局修改参考：{{ $json.data.layout.reference_example }}\n- 文本问题：{{ $json.data.text.problem }}\n- 文本修改建议：{{ $json.data.text.modification_direction }}\n- 文本修改参考：{{ $json.data.text.reference_example }}\n- 颜色问题：{{ $json.data.color.problem }}\n- 颜色修改建议：{{ $json.data.color.modification_direction }}\n- 颜色修改参考：{{ $json.data.color.reference_example }}"
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 2,
+      "position": [
+        -1888,
+        64
+      ],
+      "id": "08f44fb4-e8ae-4bad-9b74-7d591df65fb6",
+      "name": "AI Agent"
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatDeepSeek",
+      "typeVersion": 1,
+      "position": [
+        -1888,
+        272
+      ],
+      "id": "0aa79100-43cd-40ad-8045-2da47103dd99",
+      "name": "DeepSeek Chat Model",
+      "credentials": {
+        "deepSeekApi": {
+          "id": "rTZfsAYOCwTcpnXx",
+          "name": "DeepSeek account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "toText",
+        "sourceProperty": "output",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.convertToFile",
+      "typeVersion": 1.1,
+      "position": [
+        -1296,
+        64
+      ],
+      "id": "5b85ffc1-1a76-4653-924a-ae6681a1f67e",
+      "name": "Convert to File"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "6ef62ecf-bc19-4e86-a3fe-a666b1e96796",
+              "name": "output",
+              "value": "={{$json.output}}",
+              "type": "string"
+            }
+          ]
+        },
+        "includeOtherFields": true,
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        -1488,
+        64
+      ],
+      "id": "9cf95bb8-f25d-4607-8b03-2cc83eb2ad4d",
+      "name": "Edit Fields"
+    },
+    {
+      "parameters": {
+        "operation": "write",
+        "fileName": "=D:/Presentation-PPTAgent/slidev/split-results/slide_{{ $('When Executed by Another Workflow').item.json.pagenum }}.md",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.readWriteFile",
+      "typeVersion": 1,
+      "position": [
+        -1072,
+        64
+      ],
+      "id": "c51cad8c-b44a-438d-a933-86d253a5c79b",
+      "name": "Read/Write Files from Disk2"
+    },
+    {
+      "parameters": {
+        "operation": "fromJson",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.extractFromFile",
+      "typeVersion": 1,
+      "position": [
+        -2608,
+        288
+      ],
+      "id": "7cbea22d-8d03-47db-b4b1-82ce19bc65fe",
+      "name": "Extract from File2"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "d1989fb5-bfc5-4871-8c3f-138448223cdc",
+              "leftValue": "={{ $json.data.layout.score }}",
+              "rightValue": 80,
+              "operator": {
+                "type": "number",
+                "operation": "gte"
+              }
+            },
+            {
+              "id": "68107d87-1dc4-4e4f-8b59-011ec9ceffa5",
+              "leftValue": "={{ $json.data.text.score }}",
+              "rightValue": 80,
+              "operator": {
+                "type": "number",
+                "operation": "gte"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        -2368,
+        288
+      ],
+      "id": "84c717aa-77ed-468b-83be-eb6d00200b3e",
+      "name": "If",
+      "alwaysOutputData": false
+    },
+    {
+      "parameters": {
+        "workflowInputs": {
+          "values": [
+            {
+              "name": "pagenum",
+              "type": "number"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.executeWorkflowTrigger",
+      "typeVersion": 1.1,
+      "position": [
+        -5104,
+        512
+      ],
+      "id": "0a027339-406f-41b1-b5e2-277ce3f52a23",
+      "name": "When Executed by Another Workflow"
+    },
+    {
+      "parameters": {
+        "fileSelector": "=D:/Presentation-PPTAgent/slidev/split-results/slide_{{ $('When Executed by Another Workflow').item.json.pagenum }}.md",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.readWriteFile",
+      "typeVersion": 1,
+      "position": [
+        -3680,
+        0
+      ],
+      "id": "06379ed8-e0de-46d4-8397-08338d822189",
+      "name": "Read/Write Files from Disk"
+    },
+    {
+      "parameters": {
+        "operation": "text",
+        "destinationKey": "ppt",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.extractFromFile",
+      "typeVersion": 1,
+      "position": [
+        -3344,
+        0
+      ],
+      "id": "18454d62-2553-41c6-8b22-a6d562392951",
+      "name": "Extract from File"
+    },
+    {
+      "parameters": {
+        "executeOnce": false,
+        "command": "=D: && cd D:\\Presentation-PPTAgent\\slidev && npx slidev build D:\\Presentation-PPTAgent\\slidev\\split-results\\slide_{{ $('When Executed by Another Workflow').item.json.pagenum }}.md --out /tmp/slidev-dist\n"
+      },
+      "type": "n8n-nodes-base.executeCommand",
+      "typeVersion": 1,
+      "position": [
+        -4800,
+        512
+      ],
+      "id": "0bd76ce9-42ca-4a1d-beb6-3d213dc568bd",
+      "name": "Execute Command",
+      "disabled": true,
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=",
+        "options": {
+          "systemMessage": "=你是一个能自动修复 Slidev Markdown 的 AI 工程师。你的任务是根据 slidev build 的报错信息，自动修复并反馈新的 markdown 文件。\n请严格根据下面的错误处理策略执行：\n\n1. **图片路径或文件不存在**  \n   - 如果报错内容中出现图片找不到、SVG找不到、资源不存在等：\n     - 若能根据项目资源列表智能找出最相近的图片（需要我提供图片列表时），就替换为那个图片；\n     - 若无法确定正确图片路径，请直接**删除该图片引用**；\n     - 或者用 `https://via.placeholder.com/600x400` 这样的站位图替换。\n\n2. **组件拼写或不存在**  \n   - 如果报错内容是「组件不存在」或拼写错误，请查找相似名字修正；\n   - 如果无法确定，删除该组件引用，并在代码注释里说明原因。\n\n3. **前端语法错误（如HTML、Vue标签不闭合）**  \n   - 自动补全缺失的标签或修正拼写错误，使其成为合法的 HTML 或 Vue 标签。\n\n4. **YAML 前言错误**  \n   - 修正 YAML 格式问题（如冒号、缩进、缺少结束线等）。\n\n5. **未知错误**  \n   - 若出现无法识别的报错，请保留报错位置并用注释说明，没有十分把握的地方暂不修改，只给出建议。\n\n---\n\n**每次只能输出修改后的完整 markdown 文件，不要额外输出文字说明。**\n\n这里是`slides.md`的原内容，你应该基于此修正：{{ $json.data }}\n\n这里是构建报错信息：{{ $('Edit Fields2').item.json.error }}\n"
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 2.1,
+      "position": [
+        -3552,
+        672
+      ],
+      "id": "33876501-9a9b-42e7-b223-90a0638c321d",
+      "name": "AI Agent2"
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatDeepSeek",
+      "typeVersion": 1,
+      "position": [
+        -3552,
+        944
+      ],
+      "id": "d2fc4599-004a-458b-b128-cd3da6edfae0",
+      "name": "DeepSeek Chat Model2",
+      "credentials": {
+        "deepSeekApi": {
+          "id": "rTZfsAYOCwTcpnXx",
+          "name": "DeepSeek account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "fileSelector": "=D:/Presentation-PPTAgent/slidev/split-results/slide_{{ $('When Executed by Another Workflow').item.json.pagenum }}.md",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.readWriteFile",
+      "typeVersion": 1,
+      "position": [
+        -4176,
+        672
+      ],
+      "id": "a5ba600a-76d4-475b-ae81-8b1c74bc78f9",
+      "name": "Read/Write Files from Disk4",
+      "alwaysOutputData": true
+    },
+    {
+      "parameters": {
+        "operation": "text",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.extractFromFile",
+      "typeVersion": 1,
+      "position": [
+        -3920,
+        672
+      ],
+      "id": "cdc4f7f4-eb45-4bcf-ae14-5df01ede0a3c",
+      "name": "Extract from File3"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "abdfd63e-5e3a-420a-9405-a29a83c9571c",
+              "name": "error",
+              "value": "={{ $json.error }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        -4608,
+        672
+      ],
+      "id": "810a42b9-7295-4655-8cc0-4259c3d11f36",
+      "name": "Edit Fields2"
+    },
+    {
+      "parameters": {
+        "operation": "write",
+        "fileName": "=D:/Presentation-PPTAgent/slidev/split-results/slide_{{ $('When Executed by Another Workflow').item.json.pagenum }}.md",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.readWriteFile",
+      "typeVersion": 1,
+      "position": [
+        -2976,
+        672
+      ],
+      "id": "82905f9d-a388-412f-9ad1-9c45dd39f102",
+      "name": "Read/Write Files from Disk5"
+    },
+    {
+      "parameters": {
+        "operation": "toText",
+        "sourceProperty": "output",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.convertToFile",
+      "typeVersion": 1.1,
+      "position": [
+        -3184,
+        672
+      ],
+      "id": "785b9746-3d58-4211-a239-851f36d5eee6",
+      "name": "Convert to File2"
+    },
+    {
+      "parameters": {
+        "executeOnce": false,
+        "command": "=cd /d D:/Presentation-PPTAgent/evaluate   && python reference_free_eval.py --image_path D:/Presentation-PPTAgent/slidev/{{ $('When Executed by Another Workflow').item.json.pagenum }}/slide_{{ $('When Executed by Another Workflow').item.json.pagenum }}.png"
+      },
+      "type": "n8n-nodes-base.executeCommand",
+      "typeVersion": 1,
+      "position": [
+        -3504,
+        448
+      ],
+      "id": "aa3d7a0a-a33d-4f0a-9358-b44715cdac73",
+      "name": "评分",
+      "executeOnce": false
+    },
+    {
+      "parameters": {
+        "executeOnce": false,
+        "command": "=D: && cd D:/Presentation-PPTAgent/slidev && python clean_md_tags.py D:/Presentation-PPTAgent/slidev/split-results/slide_{{ $('When Executed by Another Workflow').item.json.pagenum }}.md"
+      },
+      "type": "n8n-nodes-base.executeCommand",
+      "typeVersion": 1,
+      "position": [
+        -864,
+        64
+      ],
+      "id": "113e641a-c2fa-4c2d-92b6-d9a8b28e52fc",
+      "name": "清楚md标记"
+    },
+    {
+      "parameters": {
+        "executeOnce": false,
+        "command": "=cd /d D:/Presentation-PPTAgent/slidev && D:\\Conda\\envs\\myenv\\python.exe printscreen.py ./split-results/slide_{{ $('When Executed by Another Workflow').item.json.pagenum }}.md --output ./{{ $('When Executed by Another Workflow').item.json.pagenum }}"
+      },
+      "type": "n8n-nodes-base.executeCommand",
+      "typeVersion": 1,
+      "position": [
+        -3888,
+        288
+      ],
+      "id": "5354144e-dc02-4b4c-924c-00dafc82d9be",
+      "name": "导出单页ppt",
+      "executeOnce": false
+    }
+  ],
+  "pinData": {
+    "When Executed by Another Workflow": [
+      {
+        "json": {
+          "pagenum": 5
+        }
+      }
+    ]
+  },
+  "connections": {
+    "Read/Write Files from Disk1": {
+      "main": [
+        [
+          {
+            "node": "Extract from File2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Merge": {
+      "main": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Agent": {
+      "main": [
+        [
+          {
+            "node": "Edit Fields",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "DeepSeek Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Convert to File": {
+      "main": [
+        [
+          {
+            "node": "Read/Write Files from Disk2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Edit Fields": {
+      "main": [
+        [
+          {
+            "node": "Convert to File",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Read/Write Files from Disk2": {
+      "main": [
+        [
+          {
+            "node": "清楚md标记",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extract from File2": {
+      "main": [
+        [
+          {
+            "node": "If",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If": {
+      "main": [
+        [],
+        [
+          {
+            "node": "Merge",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "When Executed by Another Workflow": {
+      "main": [
+        [
+          {
+            "node": "Execute Command",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Read/Write Files from Disk": {
+      "main": [
+        [
+          {
+            "node": "Extract from File",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extract from File": {
+      "main": [
+        [
+          {
+            "node": "Merge",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "Execute Command": {
+      "main": [
+        [
+          {
+            "node": "Read/Write Files from Disk",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "导出单页ppt",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Edit Fields2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Agent2": {
+      "main": [
+        [
+          {
+            "node": "Convert to File2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "DeepSeek Chat Model2": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Agent2",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Read/Write Files from Disk4": {
+      "main": [
+        [
+          {
+            "node": "Extract from File3",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extract from File3": {
+      "main": [
+        [
+          {
+            "node": "AI Agent2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Edit Fields2": {
+      "main": [
+        [
+          {
+            "node": "Read/Write Files from Disk4",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Read/Write Files from Disk5": {
+      "main": [
+        [
+          {
+            "node": "Execute Command",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Convert to File2": {
+      "main": [
+        [
+          {
+            "node": "Read/Write Files from Disk5",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "评分": {
+      "main": [
+        [
+          {
+            "node": "Read/Write Files from Disk1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "清楚md标记": {
+      "main": [
+        [
+          {
+            "node": "Execute Command",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "导出单页ppt": {
+      "main": [
+        [
+          {
+            "node": "评分",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "99507c32-034c-4723-ac60-7788a80f6950",
+  "meta": {
+    "instanceId": "d78d268031f654ff15a7ba81f0603e3a51125823e3c40dfb78e0bc207b997b5a"
+  },
+  "id": "50v1T8Lmbd7JJOn5",
+  "tags": []
+}

@@ -1,0 +1,26 @@
+{
+    "text": {
+        "score": 60.0,
+        "problem": "[问题] 倒数第二行的文字\"例如：Instruction completion requires no incorrect non-position matches...\"在灰色区块和白色背景的交界处，导致可读性差。",
+        "modification_direction": "[修改方向] 使用<Box>组件限定背景，调整文本框的位置和边距，确保文字不跨界并保持一致的背景。",
+        "reference_example": "[参考示例] <Box class=\"bg-white p-4\">...你的文字内容...</Box>"
+    },
+    "color": {
+        "score": 70.0,
+        "problem": "[问题] 标题行\"Evaluation Methodology: PPTX-Match System\"横跨黑色与白色背景交界处，影响可读性。右上角的图表部分有截断，边缘的花瓣图案插图堆叠，影响整体视觉和数据信息传达。",
+        "modification_direction": "[修改方向] 使用<Box>组件为标题行设置统一背景色块，避免横跨背景色。调整图片尺寸或利用<Image fit=\"contain\" />确保图表完整显示。删除或调整插图位置以避免重叠。",
+        "reference_example": "[参考示例] 使用<Box class=\"bg-white\" padding=\"2\"><h1>标题内容</h1></Box>确保背景统一。<Image fit=\"contain\" width=\"80%\" />显示完整图表，避免边缘截断。"
+    },
+    "layout": {
+        "score": 75.0,
+        "problem": "[问题] 图表右侧边缘被截断，缺失部分X轴或Y轴信息；标题“Evaluation Methodology: PPTX-Match System”文字横跨上部黑色背景和白色背景交界处；图表部分可能过小，不利于读取。",
+        "modification_direction": "[修改方向] 使用Slidev的<Image fit=\"contain\" />确保图片完整，调整标题位置避免文字跨背景色界；调整图表尺寸提高可读性。",
+        "reference_example": "[参考示例] <Box color=\"black\" rounded=\"md\" p=\"4\"><Text>Evaluation Methodology: PPTX-Match System</Text></Box>"
+    },
+    "image": {
+        "score": 75.0,
+        "problem": "[问题] 第1页右上角两幅图的图例和坐标轴标签缺失，无法清晰解释图表数据，可能影响数据的理解力；顶端标题“Evaluation Methodology: PPTX-Match System”文字部分横跨黑色与灰色背景交界处，对比不明显，不易阅读；页面下方图片显示不完整。",
+        "modification_direction": "[修改方向] 提供图例和坐标轴标签以澄清图表信息；把标题放入单一背景色的容器中以增强可读性，调整下方图片尺寸或位置以避免截断，并使用<Image fit=\"contain\" />属性。",
+        "reference_example": "[参考示例] <Image src=\"chart.png\" fit=\"contain\" width=\"100%\" /><Box class=\"bg-gray-200 text-black p-2\">Evaluation Methodology: PPTX-Match System</Box>"
+    }
+}

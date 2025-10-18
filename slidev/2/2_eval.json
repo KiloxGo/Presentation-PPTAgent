@@ -1,0 +1,26 @@
+{
+    "image": {
+        "score": 80.0,
+        "problem": "[问题] 无明显问题",
+        "modification_direction": "[修改方向] 无需修改",
+        "reference_example": "[参考示例] 保持当前格式"
+    },
+    "color": {
+        "score": 95.0,
+        "problem": "[问题] 无明显问题",
+        "modification_direction": "[修改方向] 无需修改",
+        "reference_example": "[参考示例] 保持当前格式"
+    },
+    "layout": {
+        "score": 90.0,
+        "problem": "[问题] 无明显问题",
+        "modification_direction": "[修改方向] 无需修改",
+        "reference_example": "[参考示例] 保持当前格式"
+    },
+    "text": {
+        "score": 85.0,
+        "problem": "[问题] 标题行中“Why PowerPoint for Benchmarking?”横跨黑色与白色背景交界处，可能影响可读性。",
+        "modification_direction": "[修改方向] 使用<Box>组件或调整标题位置到统一背景色区域，避免横跨背景色块；调整背景色或标题位置确保文字在单一背景色中。",
+        "reference_example": "[参考示例] <Box style=\"background-color: #fff; padding: 5px;\"># Why PowerPoint for Benchmarking?</Box>"
+    }
+}

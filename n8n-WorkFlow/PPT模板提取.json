@@ -1,0 +1,86 @@
+{
+  "name": "PPT模板提取",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "pptx-background",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        0,
+        0
+      ],
+      "id": "06c812c5-b261-4444-a8dd-40a474f422a3",
+      "name": "Webhook",
+      "webhookId": "9c0ce6b6-6db8-4402-956c-38d4815c0936"
+    },
+    {
+      "parameters": {
+        "operation": "write",
+        "fileName": "D:\\profile\\prp\\my-lobe-ui-project\\my-lobe-ui-project\\pre_background.pptx",
+        "dataPropertyName": "pptx",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.readWriteFile",
+      "typeVersion": 1,
+      "position": [
+        208,
+        0
+      ],
+      "id": "b9a9f98a-f8c5-46ba-b79b-1364df0ec227",
+      "name": "Read/Write Files from Disk"
+    },
+    {
+      "parameters": {
+        "command": "cd /d D:/profile/prp/my-lobe-ui-project/my-lobe-ui-project/src && python get_background.py"
+      },
+      "type": "n8n-nodes-base.executeCommand",
+      "typeVersion": 1,
+      "position": [
+        416,
+        0
+      ],
+      "id": "c64b861c-cede-4575-8d8f-734047837a2d",
+      "name": "Execute Command",
+      "executeOnce": false
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "Read/Write Files from Disk",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Read/Write Files from Disk": {
+      "main": [
+        [
+          {
+            "node": "Execute Command",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "19971fde-f84c-4dee-8012-33c7a0309178",
+  "meta": {
+    "instanceId": "d78d268031f654ff15a7ba81f0603e3a51125823e3c40dfb78e0bc207b997b5a"
+  },
+  "id": "eEDa1I5rokOxt1H8",
+  "tags": []
+}

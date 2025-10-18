@@ -1,0 +1,327 @@
+{
+  "name": "Auto-Slidev-Modification",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "slidev-modi",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        -320,
+        64
+      ],
+      "id": "0ecf24c5-0337-4693-91e8-044361ef32cb",
+      "name": "Webhook",
+      "webhookId": "ca69df3e-386b-45b6-80fe-a5810363c997"
+    },
+    {
+      "parameters": {
+        "fileSelector": "=D:/Presentation-PPTAgent/slidev/split-results/slide_{{ $('Merge1').item.json.pagenumber }}.md",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.readWriteFile",
+      "typeVersion": 1,
+      "position": [
+        1488,
+        48
+      ],
+      "id": "4fc992df-70e9-4f7a-bfd3-1b3e9446434c",
+      "name": "Read/Write Files from Disk"
+    },
+    {
+      "parameters": {
+        "command": "pip install fs && cd /D D:/Presentation-PPTAgent/slidev && node split_slidev.cjs ./slides.md ./split-results"
+      },
+      "type": "n8n-nodes-base.executeCommand",
+      "typeVersion": 1,
+      "position": [
+        1280,
+        48
+      ],
+      "id": "b103c769-b66b-4a58-a67c-58c3d52d78aa",
+      "name": "Execute Command"
+    },
+    {
+      "parameters": {
+        "operation": "text",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.extractFromFile",
+      "typeVersion": 1,
+      "position": [
+        1744,
+        48
+      ],
+      "id": "ba2b477b-d204-4f7e-b1dd-4626eeceabf1",
+      "name": "Extract from File"
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "={{ $json.data }}",
+        "hasOutputParser": true,
+        "options": {
+          "systemMessage": "=你是一个专业的slidev的ppt的markdown文件编写员，根据用户的需求：{{ $('Merge1').item.json.body.markdown }}，对特定的ppt页面进行相应的修改，并仅以原来一样的md格式输出，去掉开头和结尾的markdown标记！！！，保留所有---的相对位置不变\n\n你作为专业PPT布局优化师，专注于Slidev场景，需根据以下评分和修改建议优化幻灯片Markdown内容，严格遵循规则：\n\n1. 核心目标：提升布局评分，解决文字重叠、超出画布、排版混乱、空白不协调等问题；禁止更改图片内容及路径；不修改背景图片设置，必须保留类似格式：\n   <div class=\"absolute inset-0 -z-1\" style=\"border: 2px solid red; overflow: hidden;\">\n     <img src=\"D:/Presentation-PPTAgent/slidev/background/mid.jpg\" style=\"width: 100%; height: 100%; object-fit: fill;\">\n   </div>\n保证背景图片覆盖整个页面\n   确保标题及内容文字与背景无冲突。\n\n2. 技术要求：\n  所有内容与图片必须在画布范围内，绝不超出或遮挡；\n分点内容须清晰分隔，合理换行与间距；\n图片路径与内容不能修改，可调图片大小但不得裁剪或替换；\n重点内容应突出显示，标题明显、文本清晰易读，并且禁止给文本添加文本背景；每个<div>语法内或之间禁止空行；\n禁止产生内容重叠、排版错乱、异常留白等问题。\nSlidev布局修改示例：\na、配合md的基础语法，针对md文本修改样式如下：\n<font face=\"宋体\">宋体字</font>(中文全部用宋体字体)\n<font face=\"Times\">WORDS</font>（英文全部用Times的字体）\n<font color=\"red\">红色字体</font>\n<font color=\"#00ff00\">绿色字体</font>\n<font color=\"blue\">蓝色字体</font><font size=\"2\">小号字体</font>\n<font size=\"4\">中号字体</font>\n<font size=\"6\">大号字体</font><font size=\"5\" color=\"purple\" face=\"微软雅黑\">紫色大号微软雅黑</font>\n  记得前后必须加上<div>与</div>，并且针对原来md语法中的相关字体形式须按照html的格式进行修改，同时相应的换行，空格之类布局要保留下来，注意在原来有空行的地方用<br>进行实现,针对文件内有文字内容而评分中说明没有文字信息的要警惕是否是背景和文字颜色一致导致了文字被隐藏的问题，从而修改文字的颜色\nb、图片均用html的格式进行<img>包含，并进行如下方式的大小调整方案：\n  百分比缩放：<img src=https://i-blog.csdnimg.cn/blog_migrate/c6399f8f84b8620b533da4dfb3b17e35.png width=100% />\n  <img src=https://i-blog.csdnimg.cn/blog_migrate/c6399f8f84b8620b533da4dfb3b17e35.png style=\"zoom:50%;\" />\n  绝对长度缩放：<img src=https://i-blog.csdnimg.cn/blog_migrate/c6399f8f84b8620b533da4dfb3b17e35.png width=240 />\n  <img src=https://i-blog.csdnimg.cn/blog_migrate/c6399f8f84b8620b533da4dfb3b17e35.png height=140 />\nc、针对布局提供以下方案（带有theme的封面页，不对布局进行修改）：\n  左右布局：运用slidev的layout：two-col格式，并决定将<img>的表示放在左或者右，示例如下：\n---\nlayout: two-cols\n---\n\n# 左\n\n这会在左边显示\n\n::right::\n\n# 右\n\n这会在右边显示\n  （切记在two-col的布局中不允许出现：：left：：，否则会导致左边的内容不显示）\n  针对用<div>的top，left，right设置要保证左右布局的时候左边内容和右边内容的偏移不一致防止内容重叠\n  上下布局：运用slidev内部的layout：center布局进行实现，自定义将图片放于何处，并根据图片是否放置恰当自行判断\nd、针对带有theme的封面开头页，允许进行内容简化，尽量只预留一行主题以及下面编者/日期\n\n3. 输出要求：\n   - 仅返回优化后的单页幻灯片Markdown内容，无额外说明；\n   - 内容需整合正确的样式、文本、图片，适配Slidev渲染，尽量不留白；\n   - 保留原幻灯片结构（页数、顺序不变），且每页前方的---的元数据尽量保留；\n"
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 2.1,
+      "position": [
+        1968,
+        48
+      ],
+      "id": "6ba69d75-cb0f-47be-a381-6012b139e950",
+      "name": "AI Agent"
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatDeepSeek",
+      "typeVersion": 1,
+      "position": [
+        1968,
+        224
+      ],
+      "id": "34750666-1f10-4344-a0d0-a007c59f1bb3",
+      "name": "DeepSeek Chat Model1",
+      "credentials": {
+        "deepSeekApi": {
+          "id": "rTZfsAYOCwTcpnXx",
+          "name": "DeepSeek account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "mode": "combine",
+        "combineBy": "combineByPosition",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3.2,
+      "position": [
+        976,
+        48
+      ],
+      "id": "06caac1b-c068-43a6-ab4f-175c8dfc1c29",
+      "name": "Merge1",
+      "alwaysOutputData": true
+    },
+    {
+      "parameters": {
+        "fileSelector": "D:/Presentation-PPTAgent/pagenumber.txt",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.readWriteFile",
+      "typeVersion": 1,
+      "position": [
+        240,
+        -48
+      ],
+      "id": "b60adb2d-e46e-4682-a5e8-61bdf3cb1ae0",
+      "name": "Read/Write Files from Disk1"
+    },
+    {
+      "parameters": {
+        "operation": "text",
+        "destinationKey": "pagenumber",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.extractFromFile",
+      "typeVersion": 1,
+      "position": [
+        432,
+        -48
+      ],
+      "id": "dd3162d5-c4f6-407d-917b-09049a1c5b84",
+      "name": "Extract from File1"
+    },
+    {
+      "parameters": {
+        "command": "cd /d D:/Presentation-PPTAgent/slidev && node Merge-md.cjs"
+      },
+      "type": "n8n-nodes-base.executeCommand",
+      "typeVersion": 1,
+      "position": [
+        2848,
+        48
+      ],
+      "id": "8c86aac6-9353-4e3b-91e3-379de7821da8",
+      "name": "Execute Command1"
+    },
+    {
+      "parameters": {
+        "operation": "write",
+        "fileName": "=D:/Presentation-PPTAgent/slidev/split-results/slide_{{ $('Merge1').item.json.pagenumber }}.md",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.readWriteFile",
+      "typeVersion": 1,
+      "position": [
+        2528,
+        48
+      ],
+      "id": "217fa589-8bc4-468c-835d-a8002ade968b",
+      "name": "Read/Write Files from Disk2"
+    },
+    {
+      "parameters": {
+        "operation": "toText",
+        "sourceProperty": "output",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.convertToFile",
+      "typeVersion": 1.1,
+      "position": [
+        2320,
+        48
+      ],
+      "id": "76ed28cd-48e8-4892-a174-bca18d0e4b71",
+      "name": "Convert to File"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "Merge1",
+            "type": "main",
+            "index": 1
+          },
+          {
+            "node": "Read/Write Files from Disk1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Read/Write Files from Disk": {
+      "main": [
+        [
+          {
+            "node": "Extract from File",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Execute Command": {
+      "main": [
+        [
+          {
+            "node": "Read/Write Files from Disk",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extract from File": {
+      "main": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "DeepSeek Chat Model1": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Merge1": {
+      "main": [
+        [
+          {
+            "node": "Execute Command",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Agent": {
+      "main": [
+        [
+          {
+            "node": "Convert to File",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Read/Write Files from Disk1": {
+      "main": [
+        [
+          {
+            "node": "Extract from File1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extract from File1": {
+      "main": [
+        [
+          {
+            "node": "Merge1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Read/Write Files from Disk2": {
+      "main": [
+        [
+          {
+            "node": "Execute Command1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Convert to File": {
+      "main": [
+        [
+          {
+            "node": "Read/Write Files from Disk2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "e97c5484-766e-4786-b284-7797a9fb2041",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "d78d268031f654ff15a7ba81f0603e3a51125823e3c40dfb78e0bc207b997b5a"
+  },
+  "id": "SLIzxFhkOkHdCpfl",
+  "tags": []
+}
